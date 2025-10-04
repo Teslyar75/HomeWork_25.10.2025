@@ -66,14 +66,14 @@ dotnet restore
 ```
 
 3. **Применение миграций:**
-```bash
-dotnet ef database update
-```
+   ```bash
+   dotnet ef database update
+   ```
 
 4. **Запуск приложения:**
-```bash
-dotnet run
-```
+   ```bash
+   dotnet run
+   ```
 
 5. **Открытие в браузере:**
 ```
