@@ -1,0 +1,23 @@
+﻿@model ASP_421.Models.Shop.ShopIndexViewModel
+@{
+    ViewData["Title"] = "Shop";
+}
+
+<div class="logo-container">
+	<img src="~/img/logo.jpg" alt="logo" class="logo-img" />
+</div>
+
+@* Шаблони відображення (DisplayTemplates) - спосіб розділити
+	складну верстку на декілька файлів-шаблонів.
+	Файли мають обов'язково зберігатись у директорії DisplayTemplates
+	створеної у директорії представлення, наприклад, Views/Shop.
+	Якщо файл називається так само, як і модель для нього, то 
+	пошук здійснюється автоматично.
+	Викликається представлення хелпером @Html.DisplayFor
+*@
+<div class="my-4 row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-4 row-cols-xxl-6 g-4">
+	@foreach(var group in Model.ProductGroups)
+	{
+		@Html.DisplayFor(m => group)
+	}
+</div>

@@ -1,0 +1,74 @@
+﻿
+@model ASP_421.Models.User.UserProfileViewModel
+@{
+    ViewData["Title"] = "User Profile";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Персональний кабінет</h1>
+</div>
+
+@if(Model.User == null)
+{
+    <div class="alert alert-danger" role="alert">
+  Профіля не існує або користувач видалив свій профіль.
+    </div>
+}
+else {
+    <div class="row mb-2">
+        <div class="col text-end">
+            <strong>Ім'я:</strong>
+        </div>
+        <div class="col text-start" data-editable="Name">
+            @Model.User.Name
+  </div>
+    </div>
+    <div class="row mb-2">
+        <div class="col text-end" >
+            <strong>E-mail:</strong>
+        </div>
+        <div class="col text-start" data-editable="Email">
+            @Model.User.Email
+  </div>
+    </div>
+    if(Model.IsPersonal)
+    {
+        <div class="row mb-2">
+            <div class="col text-end">
+                <strong>Дата народження:</strong>
+            </div>
+            <div class="col text-start">
+    @Model.User.Birthdate?.ToString("dd.MM.yyyy")
+            </div>
+        </div>
+
+  <div class="row">
+            <div class="col text-end"><button id="btn-profile-delete" class="btn btn-danger">Delete</button></div>
+            <div class="col text-start"><button id ="btn-profile-edit"class="btn btn-warning">Edit</button></div>
+        </div>
+
+    }
+}
+@*
+    ТЗ по оновленню персональних даних користувача
+       - При переході до режиму редагування змінювати напис на кнопці "Edit"
+       на "Save" (а також впровадити переклад). При виході з редагування
+       робити зворотні зміни.
+       - При завершенні редагування вибрати один з варіантів
+         = не виходити з режиму редагування доки сервер не надішле позитивний статус
+         = виходити з режиму, але у разі негативного статусу скасовувати
+           набрані значення
+         (у будь-якому разі після виходу з редагування дані на екрані мають
+         відповідати даним у БД)
+       - Забезпечити валідацію даних на сервері перед внесенням змін. За умов
+         порушення форматів не вносити зміни, повертати негативний статус
+       - Після внесення оновлених даних необхідно такі ж зміни внести до даних,
+         що збережені у сесії
+       
+       Видалення
+       - Перевірити усі запити до вибірки користувачів (при формуванні кабінету,
+         при оновленні даних, при автентифікації, ...) на наявність фільтру
+         щодо видалених користувачів.
+       - Створити метод бекенду, що видаляє користувача без фактичного запису в БД.
+       - Організувати підтверждення дії що до видалення користувача, провести текстування.
+*@

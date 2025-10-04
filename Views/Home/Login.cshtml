@@ -1,0 +1,108 @@
+@{
+    ViewData["Title"] = "Вход в систему";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header text-center">
+                    <h4><i class="bi bi-person-circle"></i> Вход в систему</h4>
+                </div>
+                <div class="card-body">
+                    <div id="error-message" class="alert alert-danger d-none" role="alert">
+                        <i class="bi bi-exclamation-triangle"></i> <span id="error-text"></span>
+                    </div>
+                    
+                    <div id="success-message" class="alert alert-success d-none" role="alert">
+                        <i class="bi bi-check-circle"></i> <span id="success-text"></span>
+                    </div>
+
+                    <form id="login-form">
+                        <div class="mb-3">
+                            <label for="login" class="form-label">Логин</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="bi bi-person"></i>
+                                </span>
+                                <input type="text" class="form-control" id="login" name="login" 
+                                       placeholder="Введите логин" value="Admin" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Пароль</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="bi bi-lock"></i>
+                                </span>
+                                <input type="password" class="form-control" id="password" name="password" 
+                                       placeholder="Введите пароль" value="Admin" required>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-box-arrow-in-right"></i> Войти
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer text-center text-muted">
+                    <small>
+                        <strong>Тестовые данные уже заполнены</strong><br>
+                        Логин: <code>Admin</code><br>
+                        Пароль: <code>Admin</code>
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('login-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const login = document.getElementById('login').value;
+    const password = document.getElementById('password').value;
+    
+    // Скрываем сообщения
+    document.getElementById('error-message').classList.add('d-none');
+    document.getElementById('success-message').classList.add('d-none');
+    
+    // Создаем Basic Auth заголовок
+    const credentials = btoa(login + ':' + password);
+    
+    // Отправляем запрос на вход
+    fetch('/User/SignIn', {
+        method: 'POST',
+        headers: {
+            'Authorization': 'Basic ' + credentials,
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.Status === 200) {
+            // Успешный вход
+            document.getElementById('success-text').textContent = 
+                'Успешный вход! Перенаправление...';
+            document.getElementById('success-message').classList.remove('d-none');
+            
+            // Перенаправляем в админку через 1 секунду
+            setTimeout(() => {
+                window.location.href = '/Shop/Admin';
+            }, 1000);
+        } else {
+            // Ошибка входа
+            document.getElementById('error-text').textContent = data.Data || 'Ошибка входа';
+            document.getElementById('error-message').classList.remove('d-none');
+        }
+    })
+    .catch(error => {
+        document.getElementById('error-text').textContent = 'Ошибка сети: ' + error.message;
+        document.getElementById('error-message').classList.remove('d-none');
+    });
+});
+</script>

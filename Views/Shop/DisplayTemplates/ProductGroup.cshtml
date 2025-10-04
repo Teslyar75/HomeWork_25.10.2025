@@ -1,0 +1,132 @@
+@model ASP_421.Data.Entities.ProductGroup
+
+<div class="col">
+    <a class="h-100" asp-controller="Shop" asp-action="Group" asp-route-id="@Model.Slug">
+        <div class="card h-100">
+            <div class="position-relative">
+                <img src="/Storage/Item/@Model.ImageUrl" class="card-img-top" alt="@Model.Name">
+                @* Показываем количество подгрупп как на Amazon *@
+                @if (Model.Products.Any(p => p.DeletedAt == null))
+                {
+                    <span class="position-absolute top-0 end-0 badge bg-primary m-2">
+                        @Model.Products.Count(p => p.DeletedAt == null) товарів
+                    </span>
+                }
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">@Model.Name</h5>
+                <p class="card-text">@Model.Description</p>
+                @* Информация о подгруппах - показываем миниатюры как на Amazon *@
+                <div class="mt-2">
+                    <div class="subgroups-container" data-group-id="@Model.Id">
+                        <div class="d-flex justify-content-center">
+                            <div class="spinner-border spinner-border-sm text-muted" role="status">
+                                <span class="visually-hidden">Завантаження...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </a>
+</div>
+
+<style>
+.subgroups-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    margin-top: 4px;
+}
+
+.subgroup-thumb {
+    position: relative;
+    overflow: hidden;
+    border-radius: 3px;
+    background: #f8f9fa;
+}
+
+.subgroup-image {
+    width: 100%;
+    height: 30px;
+    object-fit: cover;
+    border-radius: 3px;
+    transition: transform 0.2s ease;
+}
+
+.subgroup-thumb:hover .subgroup-image {
+    transform: scale(1.05);
+}
+
+/* Для 1 элемента */
+.subgroups-grid:has(.subgroup-thumb:only-child) {
+    grid-template-columns: 1fr;
+}
+
+/* Для 3 элементов */
+.subgroups-grid:has(.subgroup-thumb:nth-child(3):last-child) {
+    grid-template-columns: 1fr 1fr;
+}
+
+/* Для 4 элементов */
+.subgroups-grid:has(.subgroup-thumb:nth-child(4):last-child) {
+    grid-template-columns: 1fr 1fr;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Загружаем информацию о подгруппах для каждой карточки
+    loadSubGroupsInfo('@Model.Id');
+});
+
+function loadSubGroupsInfo(groupId) {
+    console.log('Loading subgroups for group ID:', groupId);
+    
+    fetch(`/api/group/subgroups/${groupId}`)
+        .then(response => {
+            console.log('API response status:', response.status);
+            return response.json();
+        })
+        .then(data => {
+            console.log('API response data:', data);
+            const element = document.querySelector(`[data-group-id="${groupId}"]`);
+            console.log('Found element:', element);
+            
+            if (element && data.Status === 'Ok' && data.Data && data.Data.length > 0) {
+                console.log('Found subgroups:', data.Data.length);
+                // Показываем миниатюры первых 4 подгрупп как на Amazon
+                const subgroups = data.Data.slice(0, 4);
+                let html = '<div class="subgroups-grid">';
+                
+                subgroups.forEach(subgroup => {
+                    console.log('Adding subgroup:', subgroup.Name, subgroup.ImageUrl);
+                    html += `
+                        <div class="subgroup-thumb">
+                            <img src="/Storage/Item/${subgroup.ImageUrl}" 
+                                 alt="${subgroup.Name}" 
+                                 class="subgroup-image"
+                                 title="${subgroup.Name}"
+                                 onerror="this.src='/img/placeholder.png'">
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+                element.innerHTML = html;
+                console.log('Updated element HTML');
+            } else {
+                console.log('No subgroups found or error');
+                // Если нет подгрупп, показываем текст
+                element.innerHTML = '<small class="text-muted"><i class="bi bi-diagram-3"></i> Немає підгруп</small>';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading subgroups:', error);
+            const element = document.querySelector(`[data-group-id="${groupId}"]`);
+            if (element) {
+                element.innerHTML = '<small class="text-muted"><i class="bi bi-diagram-3"></i> Помилка завантаження</small>';
+            }
+        });
+}
+</script>

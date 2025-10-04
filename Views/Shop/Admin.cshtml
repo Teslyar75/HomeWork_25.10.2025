@@ -1,0 +1,542 @@
+﻿@model ASP_421.Models.Shop.ShopAdminViewModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Створення нової групи товарів</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Сообщения об ошибках -->
+                    <div id="validation-errors" class="alert alert-danger d-none" role="alert">
+                        <h6 class="alert-heading">Помилки валідації:</h6>
+                        <ul id="error-list" class="mb-0"></ul>
+                    </div>
+
+                    <!-- Сообщения об успехе -->
+                    <div id="success-message" class="alert alert-success d-none" role="alert">
+                        <i class="bi bi-check-circle"></i> <span id="success-text"></span>
+                    </div>
+
+                    <!-- Сообщения об общих ошибках -->
+                    <div id="general-error" class="alert alert-danger d-none" role="alert">
+                        <i class="bi bi-exclamation-triangle"></i> <span id="error-text"></span>
+                    </div>
+
+                    <form id="admin-group-form" method="post" enctype="multipart/form-data">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="group-name" class="form-label">Назва групи *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">
+                                            <i class="bi bi-bookmark-check"></i>
+                                        </span>
+                                        <input name="group-name" id="group-name"
+                                               type="text" class="form-control" placeholder="Введіть назву групи"
+                                               aria-label="Назва групи" required />
+                                    </div>
+                                    <div class="invalid-feedback" id="name-error"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="group-description" class="form-label">Опис групи</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">
+                                            <i class="bi bi-chat-left-text"></i>
+                                        </span>
+                                        <input name="group-description" id="group-description"
+                                               type="text" class="form-control" placeholder="Введіть опис групи"
+                                               aria-label="Опис групи" />
+                                    </div>
+                                    <div class="invalid-feedback" id="description-error"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="parent-group" class="form-label">Батьківська група</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">
+                                            <i class="bi bi-diagram-3"></i>
+                                        </span>
+                                        <select name="parent-group" id="parent-group" class="form-select" aria-label="Батьківська група">
+                                            <option value="">-- Оберіть батьківську групу (необов'язково) --</option>
+                                            @foreach(var group in Model.ProductGroups)
+                                            {
+                                                <option value="@group.Id">@group.Name</option>
+                                            }
+                                        </select>
+                                    </div>
+                                    <div class="form-text">Оберіть батьківську групу для створення підгрупи</div>
+                                    <div class="invalid-feedback" id="parent-group-error"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="group-slug" class="form-label">Slug (посилання) *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">
+                                            <i class="bi bi-link"></i>
+                                        </span>
+                                        <input name="group-slug" id="group-slug"
+                                               type="text" class="form-control" placeholder="наприклад: electronics"
+                                               aria-label="Slug" required />
+                                    </div>
+                                    <div class="form-text">Тільки малі літери, цифри та дефіси</div>
+                                    <div class="invalid-feedback" id="slug-error"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="group-image" class="form-label">Зображення *</label>
+                                    <div class="input-group">
+                                        <label class="input-group-text" for="group-image">
+                                            <i class="bi bi-image"></i>
+                                        </label>
+                                        <input name="group-image" type="file" class="form-control" id="group-image" 
+                                               accept=".jpg,.jpeg,.png,.gif,.webp,.bmp" required />
+                                    </div>
+                                    <div class="form-text">Максимум 5MB. Дозволені формати: JPG, PNG, GIF, WebP, BMP</div>
+                                    <div class="invalid-feedback" id="image-error"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-plus-circle"></i> Створити групу
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Форма создания товара -->
+    <div class="row justify-content-center mt-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Створення нового товару</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Сообщения об ошибках для товара -->
+                    <div id="product-validation-errors" class="alert alert-danger d-none" role="alert">
+                        <h6 class="alert-heading">Помилки валідації товару:</h6>
+                        <ul id="product-error-list" class="mb-0"></ul>
+                    </div>
+
+                    <!-- Сообщения об успехе для товара -->
+                    <div id="product-success-message" class="alert alert-success d-none" role="alert">
+                        <i class="bi bi-check-circle"></i> <span id="product-success-text"></span>
+                    </div>
+
+                    <!-- Сообщения об общих ошибках для товара -->
+                    <div id="product-general-error" class="alert alert-danger d-none" role="alert">
+                        <i class="bi bi-exclamation-triangle"></i> <span id="product-error-text"></span>
+                    </div>
+
+                    <form id="admin-product-form" method="post" enctype="multipart/form-data">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="product-name" class="form-label">Назва товару *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">
+                                            <i class="bi bi-box"></i>
+                                        </span>
+                                        <input name="product-name" id="product-name"
+                                               type="text" class="form-control" placeholder="Введіть назву товару"
+                                               aria-label="Назва товару" required />
+                                    </div>
+                                    <div class="invalid-feedback" id="product-name-error"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="product-group-id" class="form-label">Група товару *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">
+                                            <i class="bi bi-collection"></i>
+                                        </span>
+                                        <select name="product-group-id" id="product-group-id" class="form-select" aria-label="Група товару" required>
+                                            <option value="">-- Оберіть групу товару --</option>
+                                            @foreach(var group in Model.ProductGroups)
+                                            {
+                                                <option value="@group.Id">@group.Name</option>
+                                            }
+                                        </select>
+                                    </div>
+                                    <div class="invalid-feedback" id="product-group-error"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="product-description" class="form-label">Опис товару</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">
+                                            <i class="bi bi-chat-left-text"></i>
+                                        </span>
+                                        <textarea name="product-description" id="product-description"
+                                                  class="form-control" placeholder="Введіть опис товару"
+                                                  aria-label="Опис товару" rows="3"></textarea>
+                                    </div>
+                                    <div class="invalid-feedback" id="product-description-error"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="product-slug" class="form-label">Slug (посилання)</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">
+                                            <i class="bi bi-link"></i>
+                                        </span>
+                                        <input name="product-slug" id="product-slug"
+                                               type="text" class="form-control" placeholder="наприклад: super-product"
+                                               aria-label="Slug товару" />
+                                    </div>
+                                    <div class="form-text">Тільки малі літери, цифри та дефіси</div>
+                                    <div class="invalid-feedback" id="product-slug-error"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="product-price" class="form-label">Ціна *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">
+                                            <i class="bi bi-currency-dollar"></i>
+                                        </span>
+                                        <input name="product-price" id="product-price"
+                                               type="number" step="0.01" min="0" class="form-control" 
+                                               placeholder="0.00" aria-label="Ціна товару" required />
+                                    </div>
+                                    <div class="invalid-feedback" id="product-price-error"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="product-stock" class="form-label">Кількість на складі *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">
+                                            <i class="bi bi-boxes"></i>
+                                        </span>
+                                        <input name="product-stock" id="product-stock"
+                                               type="number" min="0" class="form-control" 
+                                               placeholder="0" aria-label="Кількість на складі" required />
+                                    </div>
+                                    <div class="invalid-feedback" id="product-stock-error"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="product-image" class="form-label">Зображення товару</label>
+                                    <div class="input-group">
+                                        <label class="input-group-text" for="product-image">
+                                            <i class="bi bi-image"></i>
+                                        </label>
+                                        <input name="product-image" type="file" class="form-control" id="product-image" 
+                                               accept=".jpg,.jpeg,.png,.gif,.webp,.bmp" />
+                                    </div>
+                                    <div class="form-text">Максимум 5MB. Дозволені формати: JPG, PNG, GIF, WebP, BMP</div>
+                                    <div class="invalid-feedback" id="product-image-error"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-plus-circle"></i> Створити товар
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Обработка формы группы
+    const groupForm = document.getElementById('admin-group-form');
+    if (groupForm) {
+        groupForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            submitGroupForm();
+        });
+    }
+
+    // Обработка формы товара
+    const productForm = document.getElementById('admin-product-form');
+    if (productForm) {
+        productForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            submitProductForm();
+        });
+    }
+
+    // Автоматическое заполнение slug при вводе названия товара
+    const productNameField = document.getElementById('product-name');
+    const productSlugField = document.getElementById('product-slug');
+    
+    if (productNameField && productSlugField) {
+        productNameField.addEventListener('input', function() {
+            if (!productSlugField.value.trim()) {
+                productSlugField.value = generateSlug(this.value);
+            }
+        });
+    }
+});
+
+function submitGroupForm() {
+    const formData = new FormData(document.getElementById('admin-group-form'));
+    clearMessages('group');
+    
+    // Валидация
+    const errors = validateGroupForm(formData);
+    if (errors.length > 0) {
+        showValidationErrors('group', errors);
+        return;
+    }
+
+    // Отправка на сервер
+    fetch('/api/group', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.Status === 'Ok') {
+            showSuccessMessage('group', 'Група успішно створена!');
+            document.getElementById('admin-group-form').reset();
+            // Обновляем список групп для выбора родительской группы
+            updateGroupSelects();
+        } else {
+            showErrorMessage('group', data.ErrorMessage || 'Помилка створення групи');
+        }
+    })
+    .catch(error => {
+        showErrorMessage('group', 'Помилка мережі: ' + error.message);
+    });
+}
+
+function submitProductForm() {
+    const formData = new FormData(document.getElementById('admin-product-form'));
+    clearMessages('product');
+    
+    // Валидация
+    const errors = validateProductForm(formData);
+    if (errors.length > 0) {
+        showValidationErrors('product', errors);
+        return;
+    }
+
+    // Отправка на сервер
+    fetch('/api/product', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.Status === 'Ok' || data.status === 'Ok') {
+            showSuccessMessage('product', 'Товар успішно створений!');
+            document.getElementById('admin-product-form').reset();
+        } else if (data.Status === 'ValidationError' || data.status === 'ValidationError') {
+            showValidationErrors('product', Object.values(data.Errors || {}));
+        } else {
+            showErrorMessage('product', data.ErrorMessage || data.errorMessage || 'Помилка створення товару');
+        }
+    })
+    .catch(error => {
+        showErrorMessage('product', 'Помилка мережі: ' + error.message);
+    });
+}
+
+function validateGroupForm(formData) {
+    const errors = [];
+    
+    const name = formData.get('group-name')?.toString().trim();
+    if (!name) {
+        errors.push('Назва групи обов\'язкова');
+    } else if (name.length < 2) {
+        errors.push('Назва групи повинна містити мінімум 2 символи');
+    }
+    
+    const slug = formData.get('group-slug')?.toString().trim();
+    if (!slug) {
+        errors.push('Slug групи обов\'язковий');
+    } else if (!/^[a-z0-9-]+$/.test(slug)) {
+        errors.push('Slug може містити тільки малі літери, цифри та дефіси');
+    }
+    
+    const image = formData.get('group-image');
+    if (!image || image.size === 0) {
+        errors.push('Зображення групи обов\'язкове');
+    } else if (image.size > 5 * 1024 * 1024) {
+        errors.push('Розмір зображення не повинен перевищувати 5MB');
+    }
+    
+    return errors;
+}
+
+// Автоматическое заполнение slug на основе названия
+function generateSlug(name) {
+    return name
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .trim('-');
+}
+
+function validateProductForm(formData) {
+    const errors = [];
+    
+    const name = formData.get('product-name')?.toString().trim();
+    if (!name) {
+        errors.push('Назва товару обов\'язкова');
+    } else {
+        // Автоматически генерируем slug, если он пустой
+        const slugField = document.getElementById('product-slug');
+        if (!slugField.value.trim() && name) {
+            slugField.value = generateSlug(name);
+        }
+        
+        if (name.length < 2) {
+            errors.push('Назва товару повинна містити мінімум 2 символи');
+        }
+    }
+    
+    const groupId = formData.get('product-group-id')?.toString().trim();
+    if (!groupId) {
+        errors.push('Група товару обов\'язкова');
+    }
+    
+    const price = parseFloat(formData.get('product-price'));
+    if (isNaN(price) || price < 0) {
+        errors.push('Ціна повинна бути додатним числом');
+    }
+    
+    const stock = parseInt(formData.get('product-stock'));
+    if (isNaN(stock) || stock < 0) {
+        errors.push('Кількість на складі повинна бути невід\'ємним числом');
+    }
+    
+    const slug = formData.get('product-slug')?.toString().trim();
+    if (slug && !/^[a-z0-9-]+$/.test(slug)) {
+        errors.push('Slug може містити тільки малі літери, цифри та дефіси');
+    }
+    
+    const image = formData.get('product-image');
+    if (image && image.size > 0 && image.size > 5 * 1024 * 1024) {
+        errors.push('Розмір зображення не повинен перевищувати 5MB');
+    }
+    
+    return errors;
+}
+
+function clearMessages(type) {
+    document.getElementById(`${type}-validation-errors`).classList.add('d-none');
+    document.getElementById(`${type}-success-message`).classList.add('d-none');
+    document.getElementById(`${type}-general-error`).classList.add('d-none');
+    
+    // Очищаем ошибки валидации полей
+    const form = document.getElementById(`admin-${type}-form`);
+    const invalidFields = form.querySelectorAll('.is-invalid');
+    invalidFields.forEach(field => field.classList.remove('is-invalid'));
+}
+
+function showValidationErrors(type, errors) {
+    const errorContainer = document.getElementById(`${type}-validation-errors`);
+    const errorList = document.getElementById(`${type}-error-list`);
+    
+    errorList.innerHTML = '';
+    errors.forEach(error => {
+        const li = document.createElement('li');
+        li.textContent = error;
+        errorList.appendChild(li);
+    });
+    
+    errorContainer.classList.remove('d-none');
+}
+
+function showSuccessMessage(type, message) {
+    const successContainer = document.getElementById(`${type}-success-message`);
+    const successText = document.getElementById(`${type}-success-text`);
+    
+    successText.textContent = message;
+    successContainer.classList.remove('d-none');
+    
+    // Скрываем сообщение через 5 секунд
+    setTimeout(() => {
+        successContainer.classList.add('d-none');
+    }, 5000);
+}
+
+function showErrorMessage(type, message) {
+    const errorContainer = document.getElementById(`${type}-general-error`);
+    const errorText = document.getElementById(`${type}-error-text`);
+    
+    errorText.textContent = message;
+    errorContainer.classList.remove('d-none');
+}
+
+function updateGroupSelects() {
+    // Обновляем селекты групп после создания новой группы
+    fetch('/api/group')
+        .then(response => response.json())
+        .then(data => {
+            if (data.Status === 'Ok') {
+                updateSelectOptions('parent-group', data.Data);
+                updateSelectOptions('product-group-id', data.Data);
+            }
+        })
+        .catch(error => console.error('Ошибка обновления списка групп:', error));
+}
+
+function updateSelectOptions(selectId, groups) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+    
+    const currentValue = select.value;
+    const isParentGroup = selectId === 'parent-group';
+    
+    // Очищаем опции (кроме первой)
+    while (select.children.length > 1) {
+        select.removeChild(select.lastChild);
+    }
+    
+    // Добавляем новые опции
+    groups.forEach(group => {
+        const option = document.createElement('option');
+        option.value = group.Id;
+        option.textContent = group.Name;
+        select.appendChild(option);
+    });
+    
+    // Восстанавливаем выбранное значение
+    if (currentValue) {
+        select.value = currentValue;
+    }
+}
+
+</script>

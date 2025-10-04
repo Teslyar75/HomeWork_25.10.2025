@@ -1,0 +1,85 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Custom for Visual Studio
+*.cs     diff=csharp
+*.sln    merge=union
+*.csproj merge=union
+*.vbproj merge=union
+*.fsproj merge=union
+*.dbproj merge=union
+*.isproj merge=union
+*.vcxproj merge=union
+*.vcxproj.filters merge=union
+*.vcxproj.user merge=union
+
+# Web files
+*.html   diff=html
+*.css    diff=css
+*.js     diff=javascript
+*.json   diff=json
+
+# Image files
+*.png    binary
+*.jpg    binary
+*.jpeg   binary
+*.gif    binary
+*.ico    binary
+*.svg    binary
+
+# Archive files
+*.zip    binary
+*.tar    binary
+*.gz     binary
+*.rar    binary
+*.7z     binary
+
+# Database files
+*.db     binary
+*.sqlite binary
+*.mdb    binary
+
+# Executable files
+*.exe    binary
+*.dll    binary
+*.so     binary
+*.dylib  binary
+
+# Documentation
+*.md     text
+*.txt    text
+*.rtf    text
+
+# Configuration files
+*.config text
+*.xml    text
+*.json   text
+*.yml    text
+*.yaml   text
+
+# Scripts
+*.bat    text eol=crlf
+*.cmd    text eol=crlf
+*.ps1    text eol=crlf
+*.sh     text eol=lf
+
+# ASP.NET Core specific
+appsettings*.json text
+*.csproj text
+*.sln    text
+Program.cs text
+Startup.cs text
+
+# Entity Framework
+Migrations/*.cs text
+Migrations/*.Designer.cs text
+DataContextModelSnapshot.cs text
+
+# Views
+Views/**/*.cshtml text
+Views/**/*.razor text
+
+# Static files
+wwwroot/**/*.css text
+wwwroot/**/*.js text
+wwwroot/**/*.html text

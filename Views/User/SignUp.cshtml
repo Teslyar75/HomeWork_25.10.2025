@@ -1,0 +1,141 @@
+﻿@model ASP_421.Models.User.UserSignupViewModel
+@{
+    ViewData["Title"] = "Sign Up";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Реєстрація користувача</h1>
+</div>
+
+@if (Model.FormModel == null)
+{
+    <p>Немає переданих даних</p>
+}
+else
+{
+    @Html.DisplayFor(m => Model.FormModel)
+    ;
+}
+
+@{
+    bool wasValidated = Model.ValidationErrors != null;
+    String validityClass;
+    String invalidFeedback;
+    String key;
+    bool hasKey;
+}
+
+<form asp-action="Register" method="post">
+    <div class="row">
+        <div class="col">
+            <div class="input-group mb-3">
+                <span class="input-group-text" id="user-name-addon">
+                    <i class="bi bi-person-vcard"></i>
+                </span>
+                @{
+                    key = nameof(Model.FormModel.Name);
+                    hasKey = Model.ValidationErrors?.ContainsKey(key) ?? false;
+                    validityClass = !wasValidated ? "" : hasKey ? "is-invalid" : "is-valid";
+                    invalidFeedback = hasKey ? Model.ValidationErrors![key] : "";
+                }
+                <input name="user-name" value="@Model.FormModel?.Name"
+                       type="text" class="form-control @validityClass" placeholder="Ім'я"
+                       aria-label="Ім'я користувача" aria-describedby="user-name-addon" />
+                <div class="invalid-feedback">
+                    @invalidFeedback
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="input-group mb-3">
+                <span class="input-group-text" id="user-email-addon">
+                    <i class="bi bi-envelope-at"></i>
+                </span>
+                @{
+                    key = nameof(Model.FormModel.Email);
+                    hasKey = Model.ValidationErrors?.ContainsKey(key) ?? false;
+                    validityClass = !wasValidated ? "" : hasKey ? "is-invalid" : "is-valid";
+                    invalidFeedback = hasKey ? Model.ValidationErrors![key] : "";
+                }
+                <input name="user-email" value="@Model.FormModel?.Email"
+                       type="email" class="form-control @validityClass" placeholder="email@ukr.net"
+                       aria-label="E-mail користувача" aria-describedby="user-email-addon" />
+                <div class="invalid-feedback">
+                    @invalidFeedback
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <div class="input-group mb-3">
+                <span class="input-group-text" id="user-birthday-addon">
+                    <i class="bi bi-cake"></i>
+                </span>
+                <input name="user-birthday"
+                       type="date" class="form-control" placeholder="Дата народження"
+                       aria-label="Дата народження" aria-describedby="user-birthday-addon" />
+            </div>
+        </div>
+        <div class="col">
+            <div class="input-group mb-3">
+                <span class="input-group-text" id="user-login-addon">
+                    <i class="bi bi-key"></i>
+                </span>
+                @{
+                    key = nameof(Model.FormModel.Login);
+                    hasKey = Model.ValidationErrors?.ContainsKey(key) ?? false;
+                    validityClass = !wasValidated ? "" : hasKey ? "is-invalid" : "is-valid";
+                    invalidFeedback = hasKey ? Model.ValidationErrors![key] : "";
+                }
+                <input name="user-login" value="@Model.FormModel?.Login"
+                       type="text" class="form-control @validityClass" placeholder="Логін"
+                       aria-label="Логін" aria-describedby="user-login-addon" />
+                <div class="invalid-feedback">
+                    @invalidFeedback
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <div class="input-group mb-3">
+                <span class="input-group-text" id="user-password-addon">
+                    <i class="bi bi-lock"></i>
+                </span>
+                @{
+                    key = nameof(Model.FormModel.Password);
+                    hasKey = Model.ValidationErrors?.ContainsKey(key) ?? false;
+                    validityClass = !wasValidated ? "" : hasKey ? "is-invalid" : "is-valid";
+                    invalidFeedback = hasKey ? Model.ValidationErrors![key] : "";
+                }
+                <input name="user-password" value="@Model.FormModel?.Password"
+                       type="password" class="form-control @validityClass" placeholder="Пароль"
+                       aria-label="Пароль" aria-describedby="user-password-addon" />
+                <div class="invalid-feedback">
+                    @invalidFeedback
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="input-group mb-3">
+                <span class="input-group-text" id="user-repeat-addon">
+                    <i class="bi bi-unlock"></i>
+                </span>
+                @{
+                    key = nameof(Model.FormModel.Repeat);
+                    hasKey = Model.ValidationErrors?.ContainsKey(key) ?? false;
+                    validityClass = !wasValidated ? "" : hasKey ? "is-invalid" : "is-valid";
+                    invalidFeedback = hasKey ? Model.ValidationErrors![key] : "";
+                }
+                <input name="user-repeat" value="@Model.FormModel?.Repeat"
+                       type="password" class="form-control @validityClass" placeholder="Повтор"
+                       aria-label="Повтор" aria-describedby="user-repeat-addon" />
+                <div class="invalid-feedback">
+                    @invalidFeedback
+                </div>
+            </div>
+        </div>
+    </div>
+    <button type="submit" class="btn btn-success">Реєстрація</button>
+</form>

@@ -1,0 +1,184 @@
+﻿@using System.Security.Claims
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - ASP-421</title>
+    <script type="importmap"></script>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/ASP-421.styles.css" asp-append-version="true" />
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+            <div class="container-fluid">
+                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">ASP-421</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                        aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                    <ul class="navbar-nav flex-grow-1">
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Razor">Razor</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Shop" asp-action="Index">Крамниця</a>
+                        </li>
+                    </ul>
+                    @if (Context.User.Identity?.IsAuthenticated ?? false)
+                    {
+                        String name = Context.User
+                            .Claims
+                            .First(c => c.Type == ClaimTypes.Name)
+                            .Value;
+
+                        String login = Context.User
+                        .Claims
+                        .First(c => c.Type == ClaimTypes.NameIdentifier)
+                        .Value;
+
+                        
+
+
+
+                        var birthdayClaim = Context.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.DateOfBirth);
+
+                        <div>
+                            <a asp-controller="Shop"
+                               asp-action="Admin"
+                               class="btn btn-outline-secondary text-decoration-none text-body"
+                               title="Панель управління"><i class="bi bi-speedometer2"></i></a>
+
+                            <a asp-controller="User"
+                               asp-action="Profile"
+                               asp-route-id="@login"
+                               class="rounded-circle bg-info p-1 mx-2" title="@name">@(name[0])</a>
+                            <a class="btn btn-outline-secondary" href="?logout">
+                                <i class="bi bi-box-arrow-right"></i>
+                            </a>
+                        
+                         
+                                @if (birthdayClaim != null)
+                                {
+                                    var birthday = DateTime.Parse(birthdayClaim.Value);
+                                    var today = DateTime.Today;
+                                    var nextBirthday = new DateTime(today.Year, birthday.Month, birthday.Day);
+                                    
+                                    if (nextBirthday < today)
+                                    {
+                                        nextBirthday = nextBirthday.AddYears(1);
+                                    }
+                                    
+                                    var daysUntilBirthday = (nextBirthday - today).Days;
+                                    
+                                    <span class="badge bg-warning text-dark fw-bold fs-6 px-3 py-2" title="До дня рождения @name" style="font-size: 1.1rem !important; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                                        @if (daysUntilBirthday == 0)
+                                        {
+                                            <text>🎉 Сьогодні день народження! 🎉</text>
+                                        }
+                                        else if (daysUntilBirthday == 1)
+                                        {
+                                            <text>🎂 Завтра день народження! 🎂</text>
+                                        }
+                                        else
+                                        {
+                                            <text>📅 До дня народження @daysUntilBirthday дн. 📅</text>
+                                        }
+                                    </span>
+                               
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div>
+                            <a class="btn btn-outline-secondary" asp-controller="User" asp-action="SignUp">
+                                <i class="bi bi-person-add"></i>
+                            </a> 
+                            <!-- Button trigger modal -->
+                            <button type="button" class="btn btn-outline-secondary" 
+                                    data-bs-toggle="modal" data-bs-target="#authModal">
+                                <i class="bi bi-box-arrow-in-right"></i>
+                            </button>
+                        </div>
+                    }                    
+                </div>
+            </div>
+        </nav>
+    </header>
+    <div class="container">
+        <main role="main" class="pb-3">
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="border-top footer text-muted">
+        <div class="container">
+            &copy; 2025 - ASP-421 - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+        </div>
+    </footer>
+
+    <!-- Modal -->
+    <div class="modal fade" id="authModal" tabindex="-1" aria-labelledby="authModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="authModalLabel">Автентифікація</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="auth-form">
+                        <div class="input-group mb-3">
+                            <span class="input-group-text" id="auth-login-addon">
+                                <i class="bi bi-key"></i>
+                            </span>
+                            <input name="auth-login"
+                                   type="text" class="form-control" placeholder="Логін"
+                                   aria-label="Логін" aria-describedby="auth-login-addon" />                            
+                        </div>
+                        <div class="input-group mb-3">
+                            <span class="input-group-text" id="auth-password-addon">
+                                <i class="bi bi-lock"></i>
+                            </span>
+                            <input name="auth-password"
+                                   type="password" class="form-control" placeholder="Пароль"
+                                   aria-label="Пароль" aria-describedby="auth-password-addon" />
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <!-- Поле для вывода ошибок (скрыто по умолчанию) -->
+                    <div id="auth-error" class="alert alert-danger d-none" role="alert">
+                        <span id="auth-error-text"></span>
+                    </div>
+                    
+                    <!-- Поле для успешного входа (скрыто по умолчанию) -->
+                    <div id="auth-success" class="alert alert-success d-none" role="alert">
+                        <span id="auth-success-text"></span>
+                    </div>
+
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Скасувати</button>
+                    <button type="submit" form="auth-form" class="btn btn-primary">Вхід</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/shop.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
