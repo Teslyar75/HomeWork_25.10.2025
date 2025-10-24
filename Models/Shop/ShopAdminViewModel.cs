@@ -5,5 +5,6 @@ namespace ASP_421.Models.Shop
     public class ShopAdminViewModel
     {
         public IEnumerable<ProductGroup> ProductGroups { get; set; } = [];
+        public IEnumerable<Product> Products { get; set; } = [];
     }
 }

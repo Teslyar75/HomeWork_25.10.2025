@@ -36,6 +36,33 @@ namespace ASP_421.Controllers
             viewModel.IsPersonal = authUserId != null
                 && authUserId == viewModel.User?.Id.ToString();
 
+            // Если это личный кабинет, загружаем данные корзины и статистику
+            if (viewModel.IsPersonal && viewModel.User != null)
+            {
+                var userId = viewModel.User.Id;
+                
+                // Данные корзины
+                viewModel.CartItems = _dataContext.CartItems
+                    .Where(c => c.UserId == userId)
+                    .Include(c => c.Product)
+                    .ThenInclude(p => p.Group)
+                    .AsNoTracking()
+                    .ToList();
+                
+                viewModel.CartItemsCount = viewModel.CartItems.Count();
+                viewModel.CartTotalAmount = viewModel.CartItems.Sum(c => c.Quantity * c.Product.Price);
+                
+                // Статистика пользователя (пока что заглушки, так как нет таблицы заказов)
+                viewModel.TotalOrdersCount = 0; // Будет реализовано позже
+                viewModel.TotalSpentAmount = 0m; // Будет реализовано позже
+                viewModel.LastOrderDate = null; // Будет реализовано позже
+                viewModel.LastLoginDate = viewModel.User.RegisteredAt; // Используем дату регистрации
+                
+                // Активность
+                viewModel.DaysSinceRegistration = (DateTime.Now - viewModel.User.RegisteredAt).Days;
+                viewModel.IsActiveUser = viewModel.DaysSinceRegistration <= 30; // Активен если зарегистрирован менее 30 дней назад
+            }
+
             return View(viewModel);
         }
 

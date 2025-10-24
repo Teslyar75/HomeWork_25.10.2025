@@ -70,6 +70,50 @@
 </h3>
 <h3>
     <a asp-area="" asp-controller="Home" asp-action="VisitStats">
-        Статистика заходов
+        Статистика заходів
     </a>
 </h3>
+
+@* Временная кнопка для тестирования истории просмотров *@
+<div class="mt-4">
+    <h4>Тест истории просмотров:</h4>
+    <a asp-controller="Shop" asp-action="Index" class="btn btn-primary">
+        <i class="bi bi-shop"></i> Перейти в магазин для просмотра товаров
+    </a>
+</div>
+
+@* Секция просмотренных товаров *@
+@{
+    var viewedProducts = ViewData["ViewedProducts"] as IEnumerable<ASP_421.Data.Entities.Product>;
+}
+
+@* Отладочная информация *@
+<div class="alert alert-info mt-4">
+    <h5>Отладочная информация:</h5>
+    <p><strong>Количество просмотренных товаров:</strong> @(viewedProducts?.Count() ?? 0)</p>
+    <p><strong>Session ID:</strong> @Context.Session.Id</p>
+    @if (viewedProducts != null && viewedProducts.Any())
+    {
+        <p><strong>Товары:</strong></p>
+        <ul>
+            @foreach (var product in viewedProducts)
+            {
+                <li>@product.Name (Группа: @product.Group?.Name)</li>
+            }
+        </ul>
+    }
+    else
+    {
+        <p><strong>Нет просмотренных товаров</strong></p>
+    }
+</div>
+
+@if (viewedProducts != null && viewedProducts.Any())
+{
+    @await Html.PartialAsync("_ViewedProducts", new ASP_421.Models.Shop.ViewedProductsViewModel 
+    { 
+        Products = viewedProducts, 
+        MaxItems = 8,
+        Title = "Нещодавно переглянуті товари з усіх груп"
+    })
+}

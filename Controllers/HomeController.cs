@@ -2,25 +2,36 @@ using System.Diagnostics;
 using ASP_421.Models;
 using ASP_421.Services.Kdf;
 using ASP_421.Services.Random;
+using ASP_421.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ASP_421.Controllers
 {
-    public class HomeController : Controller
+    public class HomeController(IViewedProductsService viewedProductsService, ILogger<HomeController> logger, IRandomService randomService, IKdfService kdfService) : Controller
     {
-        private readonly ILogger<HomeController> _logger;
-        private readonly IRandomService _randomService;
-        private readonly IKdfService _kdfService;
-
-        public HomeController(ILogger<HomeController> logger, IRandomService randomService, IKdfService kdfService)
-        {
-            _logger = logger;
-            _randomService = randomService;
-            _kdfService = kdfService;
-        }
+        private readonly IViewedProductsService _viewedProductsService = viewedProductsService;
+        private readonly ILogger<HomeController> _logger = logger;
+        private readonly IRandomService _randomService = randomService;
+        private readonly IKdfService _kdfService = kdfService;
 
         public IActionResult Index()
         {
+            // Получаем просмотренные товары из всех групп
+            var sessionId = HttpContext.Session.Id;
+            var viewedProducts = _viewedProductsService.GetViewedProducts(sessionId, 8);
+            
+            // Отладочная информация
+            Console.WriteLine($"HomeController - SessionId: {sessionId}");
+            Console.WriteLine($"HomeController - ViewedProducts count: {viewedProducts?.Count() ?? 0}");
+            if (viewedProducts != null && viewedProducts.Any())
+            {
+                foreach (var product in viewedProducts)
+                {
+                    Console.WriteLine($"HomeController - Product: {product.Name}, Group: {product.Group?.Name}");
+                }
+            }
+            
+            ViewData["ViewedProducts"] = viewedProducts;
             return View();
         }
 

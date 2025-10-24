@@ -7,7 +7,7 @@
 	<img src="~/img/logo.jpg" alt="logo" class="logo-img" />
 </div>
 
-@* Шаблони відображення (DisplayTemplates) - спосіб розділити
+@* Шаблоны відображення (DisplayTemplates) - спосіб розділити
 	складну верстку на декілька файлів-шаблонів.
 	Файли мають обов'язково зберігатись у директорії DisplayTemplates
 	створеної у директорії представлення, наприклад, Views/Shop.
@@ -21,3 +21,18 @@
 		@Html.DisplayFor(m => group)
 	}
 </div>
+
+@* Секция просмотренных товаров *@
+@{
+    var viewedProducts = ViewData["ViewedProducts"] as IEnumerable<ASP_421.Data.Entities.Product>;
+}
+
+@if (viewedProducts != null && viewedProducts.Any())
+{
+    @await Html.PartialAsync("_ViewedProducts", new ASP_421.Models.Shop.ViewedProductsViewModel 
+    { 
+        Products = viewedProducts, 
+        MaxItems = 8,
+        Title = "Нещодавно переглянуті товари з усіх груп"
+    })
+}

@@ -19,6 +19,8 @@ builder.Services.AddDbContext<DataContext>(options =>
         builder.Configuration.GetConnectionString("DataContext"))
 );
 builder.Services.AddScoped<DataAccessor>();
+builder.Services.AddScoped<ASP_421.Services.IViewedProductsService, ASP_421.Services.ViewedProductsService>();
+builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddDistributedMemoryCache();
 

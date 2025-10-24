@@ -1,0 +1,381 @@
+@{
+    ViewData["Title"] = "Товар";
+    var product = ViewData["Product"] as ASP_421.Data.Entities.Product;
+    var relatedProducts = ViewData["RelatedProducts"] as List<ASP_421.Data.Entities.Product>;
+}
+
+<div class="container mt-4">
+    @if (product != null)
+    {
+        <div class="row">
+            <div class="col-12">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a asp-controller="Shop" asp-action="Index">Головна</a></li>
+                        <li class="breadcrumb-item"><a asp-controller="Shop" asp-action="Group" asp-route-id="@product.Group.Slug">@product.Group.Name</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">@product.Name</li>
+                    </ol>
+                </nav>
+            </div>
+        </div>
+
+        <div class="row mb-5">
+            <!-- Изображение товара -->
+            <div class="col-lg-6 col-md-6">
+                <div class="product-image-container">
+                    @if (!string.IsNullOrEmpty(product.ImageUrl))
+                    {
+                        <img src="/Storage/Item/@product.ImageUrl" 
+                             class="img-fluid rounded shadow" 
+                             alt="@product.Name"
+                             id="main-product-image">
+                    }
+                    else
+                    {
+                        <div class="no-image-placeholder d-flex align-items-center justify-content-center">
+                            <i class="bi bi-image fs-1 text-muted"></i>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Информация о товаре -->
+            <div class="col-lg-6 col-md-6">
+                <div class="product-info">
+                    <h1 class="product-title mb-3">@product.Name</h1>
+                    
+                    <!-- Цена -->
+                    <div class="product-price mb-4">
+                        <span class="price-current h2 text-primary fw-bold">@product.Price.ToString("C")</span>
+                    </div>
+
+                    <!-- Описание -->
+                    @if (!string.IsNullOrEmpty(product.Description))
+                    {
+                        <div class="product-description mb-4">
+                            <h5>Опис товару</h5>
+                            <p class="text-muted">@product.Description</p>
+                        </div>
+                    }
+
+                    <!-- Характеристики -->
+                    <div class="product-specs mb-4">
+                        <div class="row">
+                            <div class="col-sm-4">
+                                <strong>Група:</strong>
+                            </div>
+                            <div class="col-sm-8">
+                                <a asp-controller="Shop" asp-action="Group" asp-route-id="@product.Group.Slug" class="text-decoration-none">
+                                    @product.Group.Name
+                                </a>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-4">
+                                <strong>Наявність:</strong>
+                            </div>
+                            <div class="col-sm-8">
+                                @if (product.Stock > 0)
+                                {
+                                    <span class="badge bg-success">
+                                        <i class="bi bi-check-circle"></i> В наявності (@product.Stock шт.)
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">
+                                        <i class="bi bi-x-circle"></i> Немає в наявності
+                                    </span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Кнопки действий -->
+                    <div class="product-actions">
+                        @if (product.Stock > 0)
+                        {
+                            @if (Context.User.Identity?.IsAuthenticated ?? false)
+                            {
+                                <div class="d-grid gap-2 d-md-flex">
+                                    <button class="btn btn-primary btn-lg me-md-2" onclick="addToCart('@product.Id')">
+                                        <i class="bi bi-cart-plus"></i> Додати в кошик
+                                    </button>
+                                    <button class="btn btn-outline-secondary btn-lg" onclick="addToWishlist('@product.Id')">
+                                        <i class="bi bi-heart"></i> В обране
+                                    </button>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="d-grid gap-2 d-md-flex">
+                                    <button class="btn btn-primary btn-lg me-md-2" onclick="showLoginRequired()">
+                                        <i class="bi bi-cart-plus"></i> Додати в кошик
+                                    </button>
+                                    <button class="btn btn-outline-secondary btn-lg" onclick="showLoginRequired()">
+                                        <i class="bi bi-heart"></i> В обране
+                                    </button>
+                                </div>
+                                <div class="alert alert-info mt-3">
+                                    <i class="bi bi-info-circle"></i>
+                                    Для додавання товарів до кошика потрібно <a asp-controller="User" asp-action="SignUp" class="alert-link">зареєструватися</a> або <a href="#" onclick="showLoginModal()" class="alert-link">увійти</a>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="alert alert-warning">
+                                <i class="bi bi-exclamation-triangle"></i>
+                                Товар тимчасово відсутній в наявності
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Дополнительная информация -->
+                    <div class="product-extra-info mt-4">
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <div class="info-item">
+                                    <i class="bi bi-truck text-primary"></i>
+                                    <span>Швидка доставка</span>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="info-item">
+                                    <i class="bi bi-shield-check text-success"></i>
+                                    <span>Гарантія якості</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Похожие товары -->
+        @if (relatedProducts != null && relatedProducts.Any())
+        {
+            <div class="row">
+                <div class="col-12">
+                    <h3 class="mb-4">
+                        <i class="bi bi-collection"></i> Рекомендовані товари
+                        <small class="text-muted">(3 з цієї групи + 3 з інших груп)</small>
+                    </h3>
+                    <div class="row">
+                        @foreach (var relatedProduct in relatedProducts)
+                        {
+                            <div class="col-lg-2 col-md-3 col-sm-6 mb-4">
+                                <div class="card h-100 product-card">
+                                    <a asp-controller="Shop" asp-action="Product" asp-route-slug="@relatedProduct.Slug" class="text-decoration-none">
+                                        @if (!string.IsNullOrEmpty(relatedProduct.ImageUrl))
+                                        {
+                                            <img src="/Storage/Item/@relatedProduct.ImageUrl" 
+                                                 class="card-img-top" 
+                                                 alt="@relatedProduct.Name"
+                                                 style="height: 200px; object-fit: cover;">
+                                        }
+                                        else
+                                        {
+                                            <div class="card-img-top bg-light d-flex align-items-center justify-content-center" 
+                                                 style="height: 200px;">
+                                                <i class="bi bi-image fs-1 text-muted"></i>
+                                            </div>
+                                        }
+                                    </a>
+                                    <div class="card-body d-flex flex-column">
+                                        <h6 class="card-title">
+                                            <a asp-controller="Shop" asp-action="Product" asp-route-slug="@relatedProduct.Slug" 
+                                               class="text-decoration-none text-dark">
+                                                @relatedProduct.Name
+                                            </a>
+                                        </h6>
+                                        @if (!string.IsNullOrEmpty(relatedProduct.Description))
+                                        {
+                                            <p class="card-text text-muted small flex-grow-1">
+                                                @(relatedProduct.Description.Length > 100 ? relatedProduct.Description.Substring(0, 100) + "..." : relatedProduct.Description)
+                                            </p>
+                                        }
+                                        <div class="mt-auto">
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <span class="h6 text-primary mb-0">@relatedProduct.Price.ToString("C")</span>
+                                                <small class="text-muted">
+                                                    <i class="bi bi-box"></i> @relatedProduct.Stock шт.
+                                                </small>
+                                            </div>
+                                            <a asp-controller="Shop" asp-action="Product" asp-route-slug="@relatedProduct.Slug" 
+                                               class="btn btn-outline-primary btn-sm w-100">
+                                                <i class="bi bi-eye"></i> Переглянути
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-12">
+                <div class="alert alert-danger text-center">
+                    <i class="bi bi-exclamation-triangle fs-1"></i>
+                    <h4>Товар не знайдено</h4>
+                    <p>Запитаний товар не існує або був видалений.</p>
+                    <a asp-controller="Shop" asp-action="Index" class="btn btn-primary">Повернутися до головної</a>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<script>
+function addToCart(productId) {
+    // Проверка авторизации ПЕРЕД отправкой запроса
+    const isAuthenticated = @(Context.User.Identity?.IsAuthenticated ?? false ? "true" : "false");
+    
+    if (!isAuthenticated) {
+        showCartNotification('Для додавання товарів до кошика потрібно увійти в систему', 'warning');
+        return; // НЕ ОТПРАВЛЯЕМ ЗАПРОС
+    }
+    
+    const button = event.target;
+    const originalText = button.innerHTML;
+    
+    button.innerHTML = '<i class="bi bi-hourglass-split"></i> Додаємо...';
+    button.disabled = true;
+    
+    console.log('Adding product to cart:', productId);
+    console.log('User authenticated:', isAuthenticated);
+    
+    fetch('/api/cart/add', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            productId: productId,
+            quantity: 1
+        })
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Response data:', data);
+        if (data.status === 'Ok') {
+            showCartNotification('Товар додано до корзини!', 'success');
+            updateCartCounter();
+            
+            button.classList.add('btn-success');
+            setTimeout(() => {
+                button.classList.remove('btn-success');
+                button.classList.add('btn-primary');
+            }, 1000);
+        } else {
+            console.error('API returned error:', data);
+            showCartNotification(data.errorMessage || 'Помилка додавання до корзини', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error adding to cart:', error);
+        showCartNotification('Помилка мережі: ' + error.message, 'danger');
+    })
+    .finally(() => {
+        button.innerHTML = originalText;
+        button.disabled = false;
+    });
+}
+
+function addToWishlist(productId) {
+    showCartNotification('Функція "В обране" буде реалізована пізніше', 'info');
+}
+
+function showLoginRequired() {
+    showCartNotification('Для додавання товарів до кошика потрібно увійти в систему', 'warning');
+}
+
+function showLoginModal() {
+    // Показываем модальное окно авторизации, если оно есть на странице
+    const authModal = document.getElementById('authModal');
+    if (authModal) {
+        const modal = new bootstrap.Modal(authModal);
+        modal.show();
+    } else {
+        // Если модального окна нет, перенаправляем на страницу входа
+        window.location.href = '/User/SignUp';
+    }
+}
+
+function updateCartCounter() {
+    console.log('Updating cart counter...');
+    fetch('/api/cart/count')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Cart count response:', data);
+            if (data.status === 'Ok') {
+                const cartCounter = document.getElementById('cart-counter');
+                if (cartCounter) {
+                    cartCounter.textContent = data.data.count;
+                    cartCounter.style.display = data.data.count > 0 ? 'inline' : 'none';
+                }
+            } else {
+                console.warn('Cart count API returned error:', data.errorMessage);
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка обновления счетчика корзины:', error);
+        });
+}
+
+function showCartNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    
+    notification.innerHTML = `
+        <i class="bi bi-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-triangle' : 'info-circle'}"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 3000);
+}
+
+// Функция для показа сообщения о необходимости входа
+function showLoginRequired() {
+    showCartNotification('Для додавання товарів до кошика потрібно увійти в систему', 'warning');
+}
+</script>
+
+@* Секция просмотренных товаров *@
+@{
+    var viewedProducts = ViewData["ViewedProducts"] as IEnumerable<ASP_421.Data.Entities.Product>;
+}
+
+@if (viewedProducts != null && viewedProducts.Any())
+{
+    @await Html.PartialAsync("_ViewedProducts", new ASP_421.Models.Shop.ViewedProductsViewModel 
+    { 
+        Products = viewedProducts, 
+        MaxItems = 8,
+        Title = "Нещодавно переглянуті товари з усіх груп"
+    })
+}

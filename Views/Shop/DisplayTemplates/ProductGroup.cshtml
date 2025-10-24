@@ -4,7 +4,7 @@
     <a class="h-100" asp-controller="Shop" asp-action="Group" asp-route-id="@Model.Slug">
         <div class="card h-100">
             <div class="position-relative">
-                <img src="/Storage/Item/@Model.ImageUrl" class="card-img-top" alt="@Model.Name">
+                <img src="/Storage/Item/@Model.ImageUrl" class="card-img-top group-preview-image" alt="@Model.Name">
                 @* Показываем количество подгрупп как на Amazon *@
                 @if (Model.Products.Any(p => p.DeletedAt == null))
                 {

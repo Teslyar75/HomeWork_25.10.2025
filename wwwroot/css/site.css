@@ -73,3 +73,276 @@ body {
     width: 100%;
     height: auto;
 }
+
+/* Убираем подчеркивание в описаниях групп и товаров */
+.card-text {
+    text-decoration: none !important;
+}
+
+/* Убираем подчеркивание для ссылок в карточках групп, но сохраняем для других ссылок */
+.card a {
+    text-decoration: none !important;
+}
+
+.card a:hover {
+    text-decoration: none !important;
+}
+
+/* Убираем подчеркивание для текстовых элементов внутри карточек */
+.card p, .card h1, .card h2, .card h3, .card h4, .card h5, .card h6, .card span, .card div {
+    text-decoration: none !important;
+}
+
+/* Стили для кнопок корзины */
+.btn-cart {
+    transition: all 0.3s ease;
+}
+
+.btn-cart:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.btn-cart:active {
+    transform: translateY(0);
+}
+
+/* Стили для личного кабинета */
+.profile-stats-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.profile-stats-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.profile-tab-content {
+    min-height: 400px;
+}
+
+.cart-preview-table th {
+    border-top: none;
+    font-weight: 600;
+}
+
+.cart-preview-table td {
+    vertical-align: middle;
+}
+
+.user-status-badge {
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+}
+
+/* Стили для страницы товара */
+.product-image-container {
+    position: relative;
+    overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.product-image-container img {
+    transition: transform 0.3s ease;
+    width: 100%;
+    height: auto;
+    min-height: 400px;
+    object-fit: cover;
+}
+
+.product-image-container:hover img {
+    transform: scale(1.05);
+}
+
+.no-image-placeholder {
+    height: 400px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 12px;
+}
+
+.product-title {
+    font-weight: 700;
+    color: #2c3e50;
+    line-height: 1.2;
+}
+
+.price-current {
+    font-weight: 800;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.product-specs .row {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.product-specs .row:last-child {
+    border-bottom: none;
+}
+
+.product-actions .btn {
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+}
+
+/* Стили для превьюшек товаров без обрезания */
+.product-preview-image {
+    height: 200px;
+    object-fit: contain !important;
+    object-position: center;
+    background-color: #f8f9fa;
+    padding: 8px;
+    border-radius: 8px;
+}
+
+.product-preview-image-small {
+    height: 150px;
+    object-fit: contain !important;
+    object-position: center;
+    background-color: #f8f9fa;
+    padding: 6px;
+    border-radius: 6px;
+}
+
+.viewed-product-image img,
+.recommended-product-image img {
+    object-fit: contain !important;
+    background-color: #f8f9fa;
+    padding: 8px;
+    border-radius: 8px;
+}
+
+/* Стили для изображений групп товаров */
+.group-preview-image {
+    height: 200px;
+    object-fit: contain !important;
+    object-position: center;
+    background-color: #f8f9fa;
+    padding: 8px;
+    border-radius: 8px;
+}
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.product-actions .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.product-extra-info .info-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+.product-extra-info .info-item i {
+    font-size: 1.2rem;
+}
+
+.product-card {
+    transition: all 0.3s ease;
+    border: none;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.product-card .card-img-top {
+    transition: transform 0.3s ease;
+}
+
+.product-card:hover .card-img-top {
+    transform: scale(1.05);
+}
+
+.product-card .card-body {
+    padding: 1.25rem;
+}
+
+.product-card .card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.product-card .card-title a:hover {
+    color: #0d6efd !important;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .product-image-container img {
+        min-height: 250px;
+    }
+    
+    .no-image-placeholder {
+        height: 250px;
+    }
+    
+    .product-actions .btn {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+    
+    .product-extra-info .row > div {
+        margin-bottom: 0.5rem;
+    }
+}
+
+/* Стили для кликабельных изображений рекомендуемых товаров */
+.recommended-product-image {
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.recommended-product-image:hover {
+    transform: scale(1.05);
+    opacity: 0.9;
+}
+
+.recommended-product-image a {
+    display: block;
+    overflow: hidden;
+    border-radius: 0.375rem 0.375rem 0 0;
+}
+
+.recommended-product-image img {
+    transition: transform 0.3s ease;
+}
+
+.recommended-product-image:hover img {
+    transform: scale(1.1);
+}
+
+/* Стили для просмотренных товаров */
+.viewed-product-image {
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.viewed-product-image:hover {
+    transform: scale(1.05);
+    opacity: 0.9;
+}
+
+.viewed-product-image a {
+    display: block;
+    overflow: hidden;
+    border-radius: 0.375rem 0.375rem 0 0;
+}
+
+.viewed-product-image img {
+    transition: transform 0.3s ease;
+}
+
+.viewed-product-image:hover img {
+    transform: scale(1.1);
+}

@@ -44,18 +44,24 @@
                 {
                     <div class="col-lg-4 col-md-6 mb-4">
                         <div class="card h-100">
-                            @if (!string.IsNullOrEmpty(product.ImageUrl))
-                            {
-                                <img src="/Storage/Item/@product.ImageUrl" class="card-img-top" alt="@product.Name" style="height: 200px; object-fit: cover;">
-                            }
-                            else
-                            {
-                                <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
-                                    <i class="bi bi-image fs-1 text-muted"></i>
-                                </div>
-                            }
+                            <a asp-controller="Shop" asp-action="Product" asp-route-slug="@product.Slug" class="text-decoration-none">
+                                @if (!string.IsNullOrEmpty(product.ImageUrl))
+                                {
+                                    <img src="/Storage/Item/@product.ImageUrl" class="card-img-top product-preview-image" alt="@product.Name">
+                                }
+                                else
+                                {
+                                    <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                                        <i class="bi bi-image fs-1 text-muted"></i>
+                                    </div>
+                                }
+                            </a>
                             <div class="card-body d-flex flex-column">
-                                <h5 class="card-title">@product.Name</h5>
+                                <h5 class="card-title">
+                                    <a asp-controller="Shop" asp-action="Product" asp-route-slug="@product.Slug" class="text-decoration-none text-dark">
+                                        @product.Name
+                                    </a>
+                                </h5>
                                 @if (!string.IsNullOrEmpty(product.Description))
                                 {
                                     <p class="card-text flex-grow-1">@product.Description</p>
@@ -67,9 +73,15 @@
                                             <i class="bi bi-box"></i> @product.Stock шт.
                                         </small>
                                     </div>
-                                    <button class="btn btn-primary w-100 mt-2" disabled>
-                                        <i class="bi bi-cart-plus"></i> Додати в кошик
-                                    </button>
+                                    <div class="d-grid gap-2">
+                                        <a asp-controller="Shop" asp-action="Product" asp-route-slug="@product.Slug" 
+                                           class="btn btn-outline-primary">
+                                            <i class="bi bi-eye"></i> Переглянути
+                                        </a>
+                                        <button class="btn btn-primary btn-cart" onclick="addToCart(@product.Id)">
+                                            <i class="bi bi-cart-plus"></i> Додати в кошик
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -104,3 +116,100 @@
         </div>
     }
 </div>
+
+<script>
+function addToCart(productId) {
+    // Проверка авторизации ПЕРЕД отправкой запроса
+    const isAuthenticated = @(Context.User.Identity?.IsAuthenticated ?? false ? "true" : "false");
+    
+    if (!isAuthenticated) {
+        showCartNotification('Для додавання товарів до кошика потрібно увійти в систему', 'warning');
+        return; // НЕ ОТПРАВЛЯЕМ ЗАПРОС
+    }
+    
+    // Показываем уведомление пользователю
+    const button = event.target;
+    const originalText = button.innerHTML;
+    
+    // Изменяем текст кнопки на время обработки
+    button.innerHTML = '<i class="bi bi-hourglass-split"></i> Додаємо...';
+    button.disabled = true;
+    
+    // Отправляем запрос на сервер
+    fetch('/api/cart/add', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            productId: productId,
+            quantity: 1
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.Status === 'Ok') {
+            showCartNotification('Товар додано до корзини!', 'success');
+            
+            // Обновляем счетчик корзины в навигации
+            updateCartCounter();
+            
+            // Добавляем визуальную индикацию
+            button.classList.add('btn-success');
+            setTimeout(() => {
+                button.classList.remove('btn-success');
+                button.classList.add('btn-primary');
+            }, 1000);
+        } else {
+            showCartNotification(data.ErrorMessage || 'Помилка додавання до корзини', 'danger');
+        }
+    })
+    .catch(error => {
+        showCartNotification('Помилка мережі: ' + error.message, 'danger');
+    })
+    .finally(() => {
+        // Восстанавливаем кнопку
+        button.innerHTML = originalText;
+        button.disabled = false;
+    });
+}
+
+function updateCartCounter() {
+    fetch('/api/cart/count')
+        .then(response => response.json())
+        .then(data => {
+            if (data.Status === 'Ok') {
+                const cartCounter = document.getElementById('cart-counter');
+                if (cartCounter) {
+                    cartCounter.textContent = data.Data.Count;
+                    cartCounter.style.display = data.Data.Count > 0 ? 'inline' : 'none';
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка обновления счетчика корзины:', error);
+        });
+}
+
+function showCartNotification(message, type = 'info') {
+    // Создаем уведомление
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    
+    notification.innerHTML = `
+        <i class="bi bi-${type === 'success' ? 'check-circle' : 'info-circle'}"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Автоматически скрываем через 3 секунды
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 3000);
+}
+</script>

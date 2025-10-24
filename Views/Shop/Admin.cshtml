@@ -4,6 +4,23 @@
 }
 
 <div class="container mt-4">
+    <!-- Заголовок с кнопками -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2><i class="bi bi-gear"></i> Админ панель</h2>
+                <div>
+                    <a asp-controller="Shop" asp-action="AdminEdit" class="btn btn-outline-primary me-2">
+                        <i class="bi bi-pencil-square"></i> Редактирование
+                    </a>
+                    <a asp-controller="Shop" asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Назад в магазин
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row justify-content-center">
         <div class="col-md-8">
             <div class="card">
@@ -247,16 +264,16 @@
                             </div>
                             <div class="col-md-4">
                                 <div class="mb-3">
-                                    <label for="product-image" class="form-label">Зображення товару</label>
+                                    <label for="productImage" class="form-label">Зображення товару</label>
                                     <div class="input-group">
-                                        <label class="input-group-text" for="product-image">
+                                        <label class="input-group-text" for="productImage">
                                             <i class="bi bi-image"></i>
                                         </label>
-                                        <input name="product-image" type="file" class="form-control" id="product-image" 
+                                        <input name="productImage" type="file" class="form-control" id="productImage" 
                                                accept=".jpg,.jpeg,.png,.gif,.webp,.bmp" />
                                     </div>
                                     <div class="form-text">Максимум 5MB. Дозволені формати: JPG, PNG, GIF, WebP, BMP</div>
-                                    <div class="invalid-feedback" id="product-image-error"></div>
+                                    <div class="invalid-feedback" id="productImage-error"></div>
                                 </div>
                             </div>
                         </div>
@@ -268,6 +285,285 @@
                         </div>
                     </form>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Панель управления товарами -->
+    <div class="row justify-content-center mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-box"></i> Управление товарами (@Model.Products.Count())</h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.Products.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Изображение</th>
+                                        <th>Название</th>
+                                        <th>Группа</th>
+                                        <th>Цена</th>
+                                        <th>Склад</th>
+                                        <th>Slug</th>
+                                        <th>Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var product in Model.Products)
+                                    {
+                                        <tr>
+                                            <td>
+                                                @if (!string.IsNullOrEmpty(product.ImageUrl))
+                                                {
+                                                    <img src="/Storage/Item/@product.ImageUrl" 
+                                                         alt="@product.Name" 
+                                                         class="product-preview-image-small" 
+                                                         style="width: 60px; height: 60px; object-fit: contain;">
+                                                }
+                                                else
+                                                {
+                                                    <div class="bg-light d-flex align-items-center justify-content-center" 
+                                                         style="width: 60px; height: 60px;">
+                                                        <i class="bi bi-image text-muted"></i>
+                                                    </div>
+                                                }
+                                            </td>
+                                            <td>
+                                                <strong>@product.Name</strong>
+                                                @if (!string.IsNullOrEmpty(product.Description))
+                                                {
+                                                    <br><small class="text-muted">@(product.Description.Length > 50 ? product.Description.Substring(0, 50) + "..." : product.Description)</small>
+                                                }
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-secondary">@product.Group?.Name</span>
+                                            </td>
+                                            <td>
+                                                <strong class="text-success">₴@product.Price.ToString("F2")</strong>
+                                            </td>
+                                            <td>
+                                                <span class="badge @(product.Stock > 0 ? "bg-success" : "bg-danger")">
+                                                    @product.Stock шт.
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <code>@product.Slug</code>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group" role="group">
+                                                    <button type="button" class="btn btn-sm btn-outline-primary" 
+                                                            onclick="editProduct('@product.Id')" 
+                                                            title="Редактировать">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </button>
+                                                    <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                            onclick="deleteProduct('@product.Id', '@product.Name')" 
+                                                            title="Удалить">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-4">
+                            <i class="bi bi-box display-1 text-muted"></i>
+                            <h5 class="text-muted mt-3">Товары не найдены</h5>
+                            <p class="text-muted">Создайте первый товар, используя форму выше</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно редактирования товара -->
+<div class="modal fade" id="editProductModal" tabindex="-1" aria-labelledby="editProductModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editProductModalLabel">
+                    <i class="bi bi-pencil-square"></i> Редактирование товара
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Сообщения об ошибках -->
+                <div id="edit-product-validation-errors" class="alert alert-danger d-none" role="alert">
+                    <h6 class="alert-heading">Помилки валідації:</h6>
+                    <ul id="edit-product-error-list" class="mb-0"></ul>
+                </div>
+
+                <!-- Сообщения об успехе -->
+                <div id="edit-product-success-message" class="alert alert-success d-none" role="alert">
+                    <i class="bi bi-check-circle"></i> <span id="edit-product-success-text"></span>
+                </div>
+
+                <!-- Сообщения об общих ошибках -->
+                <div id="edit-product-general-error" class="alert alert-danger d-none" role="alert">
+                    <i class="bi bi-exclamation-triangle"></i> <span id="edit-product-error-text"></span>
+                </div>
+
+                <form id="edit-product-form" method="post" enctype="multipart/form-data">
+                    <input type="hidden" id="edit-product-id" name="Id" />
+                    <input type="hidden" id="edit-product-image-url" name="ImageUrl" />
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit-product-name" class="form-label">Назва товару *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="bi bi-box"></i>
+                                    </span>
+                                    <input name="Name" id="edit-product-name"
+                                           type="text" class="form-control" placeholder="Введіть назву товару"
+                                           aria-label="Назва товару" required />
+                                </div>
+                                <div class="invalid-feedback" id="edit-product-name-error"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit-product-group-id" class="form-label">Група товару *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="bi bi-collection"></i>
+                                    </span>
+                                    <select name="GroupId" id="edit-product-group-id" class="form-select" aria-label="Група товару" required>
+                                        <option value="">-- Оберіть групу товару --</option>
+                                        @foreach(var group in Model.ProductGroups)
+                                        {
+                                            <option value="@group.Id">@group.Name</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div class="invalid-feedback" id="edit-product-group-error"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit-product-description" class="form-label">Опис товару</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="bi bi-chat-left-text"></i>
+                                    </span>
+                                    <textarea name="Description" id="edit-product-description"
+                                              class="form-control" placeholder="Введіть опис товару"
+                                              aria-label="Опис товару" rows="3"></textarea>
+                                </div>
+                                <div class="invalid-feedback" id="edit-product-description-error"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit-product-slug" class="form-label">Slug (посилання)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="bi bi-link"></i>
+                                    </span>
+                                    <input name="Slug" id="edit-product-slug"
+                                           type="text" class="form-control" placeholder="наприклад: super-product"
+                                           aria-label="Slug товару" />
+                                </div>
+                                <div class="form-text">Тільки малі літери, цифри та дефіси</div>
+                                <div class="invalid-feedback" id="edit-product-slug-error"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="edit-product-price" class="form-label">Ціна *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="bi bi-currency-dollar"></i>
+                                    </span>
+                                    <input name="Price" id="edit-product-price"
+                                           type="number" step="0.01" min="0" class="form-control" 
+                                           placeholder="0.00" aria-label="Ціна товару" required />
+                                </div>
+                                <div class="invalid-feedback" id="edit-product-price-error"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="edit-product-stock" class="form-label">Кількість на складі *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="bi bi-boxes"></i>
+                                    </span>
+                                    <input name="Stock" id="edit-product-stock"
+                                           type="number" min="0" class="form-control" 
+                                           placeholder="0" aria-label="Кількість на складі" required />
+                                </div>
+                                <div class="invalid-feedback" id="edit-product-stock-error"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="edit-productImage" class="form-label">Нове зображення товару</label>
+                                <div class="input-group">
+                                    <label class="input-group-text" for="edit-productImage">
+                                        <i class="bi bi-image"></i>
+                                    </label>
+                                    <input name="productImage" type="file" class="form-control" id="edit-productImage" 
+                                           accept=".jpg,.jpeg,.png,.gif,.webp,.bmp" />
+                                </div>
+                                <div class="form-text">Максимум 5MB. Дозволені формати: JPG, PNG, GIF, WebP, BMP</div>
+                                <div class="invalid-feedback" id="edit-productImage-error"></div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Отмена
+                </button>
+                <button type="button" class="btn btn-primary" onclick="submitEditProduct()">
+                    <i class="bi bi-check-circle"></i> Сохранить изменения
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно подтверждения удаления -->
+<div class="modal fade" id="deleteProductModal" tabindex="-1" aria-labelledby="deleteProductModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteProductModalLabel">
+                    <i class="bi bi-exclamation-triangle text-danger"></i> Подтверждение удаления
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Вы действительно хотите удалить товар <strong id="delete-product-name"></strong>?</p>
+                <p class="text-muted">Это действие нельзя отменить.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Отмена
+                </button>
+                <button type="button" class="btn btn-danger" onclick="confirmDeleteProduct()">
+                    <i class="bi bi-trash"></i> Удалить
+                </button>
             </div>
         </div>
     </div>
@@ -446,7 +742,7 @@ function validateProductForm(formData) {
         errors.push('Slug може містити тільки малі літери, цифри та дефіси');
     }
     
-    const image = formData.get('product-image');
+    const image = formData.get('productImage');
     if (image && image.size > 0 && image.size > 5 * 1024 * 1024) {
         errors.push('Розмір зображення не повинен перевищувати 5MB');
     }
@@ -537,6 +833,258 @@ function updateSelectOptions(selectId, groups) {
     if (currentValue) {
         select.value = currentValue;
     }
+}
+
+// Переменные для хранения ID товара для удаления
+let productToDeleteId = null;
+
+// Функция редактирования товара
+function editProduct(productId) {
+    console.log('editProduct вызвана с ID:', productId);
+    console.log('productId type:', typeof productId);
+    
+    // Загружаем данные товара
+        fetch(`/api/AdminEdit/products/${productId}`)
+        .then(response => response.json())
+        .then(data => {
+            console.log('Получен ответ от сервера:', data);
+            console.log('Структура ответа:', JSON.stringify(data, null, 2));
+            if (data.success === true) {
+                const product = data.data;
+                console.log('Данные товара:', product);
+                console.log('Все свойства product:', Object.keys(product));
+                
+                // Заполняем форму редактирования (используем camelCase, как в JSON)
+                document.getElementById('edit-product-id').value = product.id || '';
+                document.getElementById('edit-product-name').value = product.name || '';
+                document.getElementById('edit-product-description').value = product.description || '';
+                document.getElementById('edit-product-price').value = product.price || '';
+                document.getElementById('edit-product-stock').value = product.stock || '';
+                document.getElementById('edit-product-slug').value = product.slug || '';
+                document.getElementById('edit-product-group-id').value = product.groupId || '';
+                document.getElementById('edit-product-image-url').value = product.imageUrl || '';
+                
+                console.log('Загружаем товар для редактирования:', product);
+                console.log('Product.id:', product.id);
+                console.log('Product.id type:', typeof product.id);
+                console.log('Установлен ID в скрытое поле:', document.getElementById('edit-product-id').value);
+                
+                // Очищаем сообщения об ошибках
+                clearEditMessages();
+                
+                // Показываем модальное окно
+                const modal = new bootstrap.Modal(document.getElementById('editProductModal'));
+                modal.show();
+            } else {
+                alert('Ошибка загрузки данных товара: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка:', error);
+            alert('Ошибка загрузки данных товара');
+        });
+}
+
+// Функция удаления товара
+function deleteProduct(productId, productName) {
+    productToDeleteId = productId;
+    document.getElementById('delete-product-name').textContent = productName;
+    
+    const modal = new bootstrap.Modal(document.getElementById('deleteProductModal'));
+    modal.show();
+}
+
+// Функция подтверждения удаления
+function confirmDeleteProduct() {
+    if (!productToDeleteId) return;
+    
+    console.log('Удаляем товар с ID:', productToDeleteId);
+    
+        fetch(`/api/AdminEdit/products/${productToDeleteId}`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Response data:', data);
+        if (data.success === true) {
+            // Закрываем модальное окно
+            const modal = bootstrap.Modal.getInstance(document.getElementById('deleteProductModal'));
+            modal.hide();
+            
+            // Показываем сообщение об успехе
+            showSuccessMessage('product', 'Товар успешно удален!');
+            
+            // Перезагружаем страницу через 1 секунду
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            alert('Ошибка удаления товара: ' + (data.message || 'Неизвестная ошибка'));
+        }
+    })
+    .catch(error => {
+        console.error('Ошибка:', error);
+        alert('Ошибка удаления товара: ' + error.message);
+    });
+}
+
+// Функция отправки формы редактирования
+function submitEditProduct() {
+    const formData = new FormData(document.getElementById('edit-product-form'));
+    clearEditMessages();
+    
+    console.log('Отправляем данные для редактирования товара:');
+    for (let [key, value] of formData.entries()) {
+        if (value instanceof File) {
+            console.log(key + ': File(' + value.name + ', ' + value.size + ' bytes)');
+        } else {
+            console.log(key + ': ' + value);
+        }
+    }
+    
+    // Валидация
+    const errors = validateEditProductForm(formData);
+    if (errors.length > 0) {
+        showEditValidationErrors(errors);
+        return;
+    }
+
+    // Отправка на сервер
+    const productId = document.getElementById('edit-product-id').value;
+    console.log('Отправляем POST запрос для товара с ID:', productId);
+    
+    // Проверяем, что ID установлен
+    if (!productId || productId === '00000000-0000-0000-0000-000000000000') {
+        showEditErrorMessage('Ошибка: ID товара не установлен. Попробуйте загрузить товар заново.');
+        return;
+    }
+    
+        fetch(`/Shop/UpdateProduct/${productId}`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        if (!response.ok) {
+            // Попробуем получить текст ошибки
+            return response.text().then(text => {
+                console.log('Response text:', text);
+                throw new Error(`HTTP error! status: ${response.status}, text: ${text}`);
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Response data:', data);
+        if (data.success === true) {
+            // Закрываем модальное окно
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editProductModal'));
+            modal.hide();
+            
+            // Показываем сообщение об успехе
+            showSuccessMessage('product', 'Товар успешно обновлен!');
+            
+            // Перезагружаем страницу через 1 секунду
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else if (data.success === false && data.errors) {
+            showEditValidationErrors(Object.values(data.errors));
+        } else {
+            showEditErrorMessage(data.message || 'Ошибка обновления товара');
+        }
+    })
+    .catch(error => {
+        console.error('Ошибка:', error);
+        showEditErrorMessage('Ошибка сети: ' + error.message);
+    });
+}
+
+// Валидация формы редактирования
+function validateEditProductForm(formData) {
+    const errors = [];
+    
+    const name = formData.get('Name')?.toString().trim();
+    if (!name) {
+        errors.push('Назва товару обов\'язкова');
+    } else if (name.length < 2) {
+        errors.push('Назва товару повинна містити мінімум 2 символи');
+    }
+    
+    const groupId = formData.get('GroupId')?.toString().trim();
+    if (!groupId) {
+        errors.push('Група товару обов\'язкова');
+    }
+    
+    const priceStr = formData.get('Price')?.toString().trim();
+    if (!priceStr) {
+        errors.push('Ціна товару обов\'язкова');
+    } else {
+        const price = parseFloat(priceStr);
+        if (isNaN(price) || price <= 0) {
+            errors.push('Ціна повинна бути додатним числом');
+        }
+    }
+    
+    const stockStr = formData.get('Stock')?.toString().trim();
+    if (!stockStr) {
+        errors.push('Кількість на складі обов\'язкова');
+    } else {
+        const stock = parseInt(stockStr);
+        if (isNaN(stock) || stock < 0) {
+            errors.push('Кількість на складі повинна бути невід\'ємним числом');
+        }
+    }
+    
+    const slug = formData.get('Slug')?.toString().trim();
+    if (slug && !/^[a-z0-9-]+$/.test(slug)) {
+        errors.push('Slug може містити тільки малі літери, цифри та дефіси');
+    }
+    
+    const image = formData.get('productImage');
+    if (image && image.size > 0 && image.size > 5 * 1024 * 1024) {
+        errors.push('Розмір зображення не повинен перевищувати 5MB');
+    }
+    
+    return errors;
+}
+
+// Функции для работы с сообщениями в модальном окне редактирования
+function clearEditMessages() {
+    document.getElementById('edit-product-validation-errors').classList.add('d-none');
+    document.getElementById('edit-product-success-message').classList.add('d-none');
+    document.getElementById('edit-product-general-error').classList.add('d-none');
+}
+
+function showEditValidationErrors(errors) {
+    const errorContainer = document.getElementById('edit-product-validation-errors');
+    const errorList = document.getElementById('edit-product-error-list');
+    
+    errorList.innerHTML = '';
+    errors.forEach(error => {
+        const li = document.createElement('li');
+        li.textContent = error;
+        errorList.appendChild(li);
+    });
+    
+    errorContainer.classList.remove('d-none');
+}
+
+function showEditErrorMessage(message) {
+    const errorContainer = document.getElementById('edit-product-general-error');
+    const errorText = document.getElementById('edit-product-error-text');
+    
+    errorText.textContent = message;
+    errorContainer.classList.remove('d-none');
 }
 
 </script>

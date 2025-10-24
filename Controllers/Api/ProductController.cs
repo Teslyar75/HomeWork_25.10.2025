@@ -139,10 +139,11 @@ namespace ASP_421.Controllers.Api
                 };
             }
 
-            try
-            {
-                // Сохраняем изображение, если оно есть
-                string? imageUrl = null;
+        // Сохраняем изображение, если оно есть
+        string? imageUrl = null;
+        
+        try
+        {
                 if (formModel.Image != null && formModel.Image.Length > 0)
                 {
                     try
@@ -197,6 +198,60 @@ namespace ASP_421.Controllers.Api
                     Message = "Товар успішно створений",
                     ProductId = product.Id
                 };
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("slug"))
+            {
+                _logger.LogWarning($"Slug conflict detected: {ex.Message}. Attempting to generate new slug.");
+                
+                // Попробуем создать товар с новым slug
+                try
+                {
+                    // Генерируем новый уникальный slug
+                    string newBaseSlug = System.Text.RegularExpressions.Regex.Replace(
+                        formModel.Name.Trim().ToLowerInvariant(), @"[^a-z0-9]+", "-").Trim('-');
+                    
+                    string newUniqueSlug = newBaseSlug;
+                    int counter = 1;
+                    
+                    while (!_dataAccessor.IsProductSlugUnique(newUniqueSlug))
+                    {
+                        newUniqueSlug = $"{newBaseSlug}-{counter}";
+                        counter++;
+                    }
+                    
+                    // Создаем новый продукт с новым slug
+                    Product retryProduct = new()
+                    {
+                        Id = Guid.NewGuid(),
+                        Name = formModel.Name.Trim(),
+                        Description = string.IsNullOrWhiteSpace(formModel.Description) ? null : formModel.Description.Trim(),
+                        Slug = newUniqueSlug,
+                        Stock = formModel.Stock,
+                        Price = (decimal)formModel.Price,
+                        GroupId = Guid.Parse(formModel.GroupId),
+                        ImageUrl = imageUrl,
+                        DeletedAt = null
+                    };
+                    
+                    _logger.LogInformation($"Retrying with new slug: {newUniqueSlug}");
+                    _dataAccessor.AddProduct(retryProduct);
+                    
+                    return new
+                    {
+                        Status = "Ok",
+                        Message = "Товар успішно створений з автоматично згенерованим slug",
+                        ProductId = retryProduct.Id
+                    };
+                }
+                catch (Exception retryEx)
+                {
+                    _logger.LogError(retryEx, "Error creating product with retry slug");
+                    return new
+                    {
+                        Status = "Fail",
+                        ErrorMessage = "Помилка створення товару після повторної спроби: " + retryEx.Message
+                    };
+                }
             }
             catch (Exception ex)
             {
