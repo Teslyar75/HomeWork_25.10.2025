@@ -10,6 +10,9 @@
             <div class="d-flex justify-content-between align-items-center">
                 <h2><i class="bi bi-gear"></i> Админ панель</h2>
                 <div>
+                    <button onclick="clearCache()" class="btn btn-outline-warning me-2" title="Очистить кэш групп">
+                        <i class="bi bi-arrow-clockwise"></i> Очистить кэш
+                    </button>
                     <a asp-controller="Shop" asp-action="AdminEdit" class="btn btn-outline-primary me-2">
                         <i class="bi bi-pencil-square"></i> Редактирование
                     </a>
@@ -269,7 +272,7 @@
                                         <label class="input-group-text" for="productImage">
                                             <i class="bi bi-image"></i>
                                         </label>
-                                        <input name="productImage" type="file" class="form-control" id="productImage" 
+                                        <input name="product-image" type="file" class="form-control" id="productImage" 
                                                accept=".jpg,.jpeg,.png,.gif,.webp,.bmp" />
                                     </div>
                                     <div class="form-text">Максимум 5MB. Дозволені формати: JPG, PNG, GIF, WebP, BMP</div>
@@ -521,7 +524,7 @@
                                     <label class="input-group-text" for="edit-productImage">
                                         <i class="bi bi-image"></i>
                                     </label>
-                                    <input name="productImage" type="file" class="form-control" id="edit-productImage" 
+                                    <input name="product-image" type="file" class="form-control" id="edit-productImage" 
                                            accept=".jpg,.jpeg,.png,.gif,.webp,.bmp" />
                                 </div>
                                 <div class="form-text">Максимум 5MB. Дозволені формати: JPG, PNG, GIF, WebP, BMP</div>
@@ -742,7 +745,7 @@ function validateProductForm(formData) {
         errors.push('Slug може містити тільки малі літери, цифри та дефіси');
     }
     
-    const image = formData.get('productImage');
+    const image = formData.get('product-image');
     if (image && image.size > 0 && image.size > 5 * 1024 * 1024) {
         errors.push('Розмір зображення не повинен перевищувати 5MB');
     }
@@ -1050,7 +1053,7 @@ function validateEditProductForm(formData) {
         errors.push('Slug може містити тільки малі літери, цифри та дефіси');
     }
     
-    const image = formData.get('productImage');
+    const image = formData.get('product-image');
     if (image && image.size > 0 && image.size > 5 * 1024 * 1024) {
         errors.push('Розмір зображення не повинен перевищувати 5MB');
     }
@@ -1085,6 +1088,30 @@ function showEditErrorMessage(message) {
     
     errorText.textContent = message;
     errorContainer.classList.remove('d-none');
+}
+
+async function clearCache() {
+    try {
+        const response = await fetch('/api/admin/clear-cache', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        if (response.ok) {
+            showSuccessMessage('Кэш групп успешно очищен!');
+            // Перезагружаем страницу через 1 секунду
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            showErrorMessage('Ошибка при очистке кэша');
+        }
+    } catch (error) {
+        console.error('Error clearing cache:', error);
+        showErrorMessage('Ошибка при очистке кэша');
+    }
 }
 
 </script>

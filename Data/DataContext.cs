@@ -11,6 +11,8 @@ namespace ASP_421.Data
         public DbSet<Entities.ProductGroup> ProductGroups { get; set; }
         public DbSet<Entities.Product> Products { get; set; }
         public DbSet<Entities.CartItem> CartItems { get; set; }
+        public DbSet<Entities.Order> Orders { get; set; }
+        public DbSet<Entities.OrderItem> OrderItems { get; set; }
         public DataContext(DbContextOptions options) : base(options) { }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -46,6 +48,26 @@ namespace ASP_421.Data
             modelBuilder.Entity<Entities.CartItem>()
                 .HasIndex(c => new { c.UserId, c.ProductId })
                 .IsUnique();
+
+            // Конфигурация для Order
+            modelBuilder.Entity<Entities.Order>()
+                .HasOne(o => o.User)
+                .WithMany()
+                .HasForeignKey(o => o.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Entities.Order>()
+                .HasMany(o => o.OrderItems)
+                .WithOne(oi => oi.Order)
+                .HasForeignKey(oi => oi.OrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Конфигурация для OrderItem
+            modelBuilder.Entity<Entities.OrderItem>()
+                .HasOne(oi => oi.Product)
+                .WithMany()
+                .HasForeignKey(oi => oi.ProductId)
+                .OnDelete(DeleteBehavior.Restrict); // Не удаляем товар, если есть заказы
 
         }
     }

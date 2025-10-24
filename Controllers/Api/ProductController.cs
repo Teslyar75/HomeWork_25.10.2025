@@ -144,20 +144,29 @@ namespace ASP_421.Controllers.Api
         
         try
         {
+                _logger.LogInformation($"Image file received: {(formModel.Image != null ? $"File: {formModel.Image.FileName}, Size: {formModel.Image.Length}" : "null")}");
+                
                 if (formModel.Image != null && formModel.Image.Length > 0)
                 {
                     try
                     {
+                        _logger.LogInformation($"Saving image file: {formModel.Image.FileName}");
                         imageUrl = _storageService.Save(formModel.Image);
+                        _logger.LogInformation($"Image saved successfully: {imageUrl}");
                     }
                     catch (Exception imgEx)
                     {
+                        _logger.LogError($"Error saving image: {imgEx.Message}");
                         return new
                         {
                             Status = "Fail",
                             ErrorMessage = "Помилка збереження зображення: " + imgEx.Message
                         };
                     }
+                }
+                else
+                {
+                    _logger.LogInformation("No image file provided or file is empty");
                 }
 
                 // Генерируем уникальный slug
@@ -188,7 +197,7 @@ namespace ASP_421.Controllers.Api
                     ImageUrl = imageUrl
                 };
 
-                _logger.LogInformation($"Creating product: {product.Name}, Slug: {product.Slug}, GroupId: {product.GroupId}");
+                _logger.LogInformation($"Creating product: {product.Name}, Slug: {product.Slug}, GroupId: {product.GroupId}, ImageUrl: {product.ImageUrl}");
                 _dataAccessor.AddProduct(product);
                 _logger.LogInformation($"Product created successfully with ID: {product.Id}");
                 

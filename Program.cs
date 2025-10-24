@@ -4,6 +4,8 @@ using ASP_421.Services.Kdf;
 using ASP_421.Services.Random;
 using Microsoft.EntityFrameworkCore;
 using ASP_421.Services.Storage;
+using ASP_421.Services.Interfaces;
+using ASP_421.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,6 +21,16 @@ builder.Services.AddDbContext<DataContext>(options =>
         builder.Configuration.GetConnectionString("DataContext"))
 );
 builder.Services.AddScoped<DataAccessor>();
+
+// Регистрируем новые сервисы
+builder.Services.AddScoped<ICacheService, MemoryCacheService>();
+builder.Services.AddScoped<ICartService, CartService>();
+builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<ProductGroupService>(); // Регистрируем базовый сервис
+builder.Services.AddScoped<IProductGroupService, CachedProductGroupService>(); // Регистрируем кэшированный как интерфейс
+builder.Services.AddScoped<IUserService, UserService>();
+
 builder.Services.AddScoped<ASP_421.Services.IViewedProductsService, ASP_421.Services.ViewedProductsService>();
 builder.Services.AddHttpContextAccessor();
 
@@ -43,6 +55,8 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseRouting();
+
+// app.UseRateLimiting(); // Временно отключаем
 
 app.UseAuthorization();
 

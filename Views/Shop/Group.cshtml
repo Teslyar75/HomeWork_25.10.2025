@@ -78,7 +78,7 @@
                                            class="btn btn-outline-primary">
                                             <i class="bi bi-eye"></i> Переглянути
                                         </a>
-                                        <button class="btn btn-primary btn-cart" onclick="addToCart(@product.Id)">
+                                        <button class="btn btn-primary btn-cart" onclick="addToCart('@product.Id')">
                                             <i class="bi bi-cart-plus"></i> Додати в кошик
                                         </button>
                                     </div>
@@ -118,12 +118,15 @@
 </div>
 
 <script>
+// Version: 1.1 - Fixed API response format handling
 function addToCart(productId) {
     // Проверка авторизации ПЕРЕД отправкой запроса
     const isAuthenticated = @(Context.User.Identity?.IsAuthenticated ?? false ? "true" : "false");
+    console.log('Is authenticated:', isAuthenticated);
+    console.log('Product ID:', productId);
     
     if (!isAuthenticated) {
-        showCartNotification('Для додавання товарів до кошика потрібно увійти в систему', 'warning');
+        showCartNotification('Please login to add items to cart', 'warning');
         return; // НЕ ОТПРАВЛЯЕМ ЗАПРОС
     }
     
@@ -132,24 +135,30 @@ function addToCart(productId) {
     const originalText = button.innerHTML;
     
     // Изменяем текст кнопки на время обработки
-    button.innerHTML = '<i class="bi bi-hourglass-split"></i> Додаємо...';
+    button.innerHTML = '<i class="bi bi-hourglass-split"></i> Adding...';
     button.disabled = true;
     
     // Отправляем запрос на сервер
+    const requestData = {
+        productId: productId,
+        quantity: 1
+    };
+    console.log('Sending request:', requestData);
+    
     fetch('/api/cart/add', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-            productId: productId,
-            quantity: 1
-        })
+        body: JSON.stringify(requestData)
     })
     .then(response => response.json())
     .then(data => {
-        if (data.Status === 'Ok') {
-            showCartNotification('Товар додано до корзини!', 'success');
+        console.log('Cart API Response:', data);
+        console.log('Checking status - data.Status:', data.Status, 'data.status:', data.status);
+        if (data.Status === 'Ok' || data.status === 'Ok') {
+            console.log('Success! Showing success notification');
+            showCartNotification('Item added to cart!', 'success');
             
             // Обновляем счетчик корзины в навигации
             updateCartCounter();
@@ -161,11 +170,13 @@ function addToCart(productId) {
                 button.classList.add('btn-primary');
             }, 1000);
         } else {
-            showCartNotification(data.ErrorMessage || 'Помилка додавання до корзини', 'danger');
+            console.log('Error! Status is not Ok. Showing error notification');
+            showCartNotification(data.ErrorMessage || data.errorMessage || 'Error adding to cart', 'danger');
         }
     })
     .catch(error => {
-        showCartNotification('Помилка мережі: ' + error.message, 'danger');
+        console.error('Cart API Error:', error);
+        showCartNotification('Network error: ' + error.message, 'danger');
     })
     .finally(() => {
         // Восстанавливаем кнопку
@@ -178,30 +189,31 @@ function updateCartCounter() {
     fetch('/api/cart/count')
         .then(response => response.json())
         .then(data => {
-            if (data.Status === 'Ok') {
+            if (data.Status === 'Ok' || data.status === 'Ok') {
                 const cartCounter = document.getElementById('cart-counter');
                 if (cartCounter) {
-                    cartCounter.textContent = data.Data.Count;
-                    cartCounter.style.display = data.Data.Count > 0 ? 'inline' : 'none';
+                    // Поддерживаем как PascalCase, так и camelCase
+                    const count = data.Data?.Count || data.Data?.count || data.data?.Count || data.data?.count || 0;
+                    cartCounter.textContent = count;
+                    cartCounter.style.display = count > 0 ? 'inline' : 'none';
                 }
             }
         })
         .catch(error => {
-            console.error('Ошибка обновления счетчика корзины:', error);
+            console.error('Error updating cart counter:', error);
         });
 }
 
 function showCartNotification(message, type = 'info') {
     // Создаем уведомление
     const notification = document.createElement('div');
-    notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    notification.className = 'alert alert-' + type + ' alert-dismissible fade show position-fixed';
     notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
     
-    notification.innerHTML = `
-        <i class="bi bi-${type === 'success' ? 'check-circle' : 'info-circle'}"></i>
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
+    notification.innerHTML = 
+        '<i class="bi bi-' + (type === 'success' ? 'check-circle' : 'info-circle') + '"></i>' +
+        message +
+        '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
     
     document.body.appendChild(notification);
     

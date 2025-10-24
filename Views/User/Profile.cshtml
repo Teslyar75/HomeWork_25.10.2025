@@ -2,6 +2,7 @@
 @model ASP_421.Models.User.UserProfileViewModel
 @{
     ViewData["Title"] = "User Profile";
+    var orders = ViewData["Orders"] as IEnumerable<ASP_421.Data.Entities.Order> ?? Enumerable.Empty<ASP_421.Data.Entities.Order>();
 }
 
 <div class="text-center">
@@ -47,6 +48,56 @@ else {
             <div class="col text-start"><button id ="btn-profile-edit"class="btn btn-warning">Edit</button></div>
         </div>
 
+    }
+
+    <!-- История покупок -->
+    <hr class="my-4">
+    <h3 class="mb-3">Історія покупок</h3>
+
+    @if (orders.Any())
+    {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Дата створення</th>
+                    <th>Позицій</th>
+                    <th>Вартість</th>
+                    <th>Статус</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var order in orders)
+                {
+                    <tr>
+                        <td>
+                            <a asp-controller="Orders" asp-action="Details" asp-route-id="@order.Id" class="text-decoration-none">
+                                @order.OrderDate.ToString("dd.MM.yyyy HH:mm:ss")
+                            </a>
+                        </td>
+                        <td>@order.ItemsCount</td>
+                        <td>@order.TotalAmount</td>
+                        <td>
+                            @if (order.Status == "Completed")
+                            {
+                                <span>✓</span>
+                            }
+                            else if (order.Status == "Cancelled")
+                            {
+                                <span>🗑</span>
+                            }
+                            else
+                            {
+                                <span>@order.Status</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p>Історія покупок порожня</p>
     }
 }
 @*

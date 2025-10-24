@@ -2,6 +2,7 @@ using ASP_421.Data;
 using ASP_421.Data.Entities;
 using ASP_421.Models.Shop;
 using ASP_421.Services.Storage;
+using ASP_421.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
@@ -10,10 +11,11 @@ namespace ASP_421.Controllers.Api
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class AdminEditController(DataAccessor dataAccessor, IStorageService storageService) : ControllerBase
+    public class AdminEditController(DataAccessor dataAccessor, IStorageService storageService, IProductGroupService productGroupService) : ControllerBase
     {
         private readonly DataAccessor _dataAccessor = dataAccessor;
         private readonly IStorageService _storageService = storageService;
+        private readonly IProductGroupService _productGroupService = productGroupService;
 
         // Получение всех групп для редактирования
         [HttpGet("groups")]
@@ -130,7 +132,7 @@ namespace ASP_421.Controllers.Api
             try
             {
                 Console.WriteLine($"GET request for product with ID: {id}");
-                
+
                 var product = _dataAccessor.GetProductById(id);
                 if (product == null)
                 {
@@ -211,11 +213,11 @@ namespace ASP_421.Controllers.Api
         {
             Console.WriteLine($"PUT request received for product ID: {id}");
             Console.WriteLine($"Request content type: {HttpContext.Request.ContentType}");
-            
+
             // Проверка авторизации
             Console.WriteLine($"User authenticated: {HttpContext.User.Identity?.IsAuthenticated}");
             Console.WriteLine($"User name: {HttpContext.User.Identity?.Name}");
-            
+
             if (!HttpContext.User.Identity?.IsAuthenticated ?? true)
             {
                 Console.WriteLine("User not authenticated, returning 401");
@@ -238,12 +240,12 @@ namespace ASP_421.Controllers.Api
                 Console.WriteLine($"Attempting to update product with ID: {id}");
                 Console.WriteLine($"Model data - Name: {model.Name}, Price: {model.Price}, Stock: {model.Stock}, GroupId: {model.GroupId}, ImageUrl: {model.ImageUrl}");
                 Console.WriteLine($"ProductImage: {(productImage != null ? $"File: {productImage.FileName}, Size: {productImage.Length}" : "null")}");
-                
+
                 if (!ModelState.IsValid)
                 {
                     var errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage));
                     Console.WriteLine($"Validation errors: {string.Join(", ", errors)}");
-                    
+
                     // Логируем все ошибки ModelState
                     foreach (var key in ModelState.Keys)
                     {
@@ -253,7 +255,7 @@ namespace ASP_421.Controllers.Api
                             Console.WriteLine($"ModelState error for '{key}': {string.Join(", ", state.Errors.Select(e => e.ErrorMessage))}");
                         }
                     }
-                    
+
                     return BadRequest(new { success = false, message = "Помилки валідації", errors });
                 }
 
@@ -351,7 +353,7 @@ namespace ASP_421.Controllers.Api
             try
             {
                 Console.WriteLine($"Attempting to delete product with ID: {id}");
-                
+
                 var product = _dataAccessor.GetProductById(id);
                 if (product == null)
                 {
@@ -459,19 +461,33 @@ namespace ASP_421.Controllers.Api
 
             // Удаление всех символов кроме букв, цифр и дефисов
             result = Regex.Replace(result, @"[^a-z0-9\-]", "-");
-            
+
             // Удаление множественных дефисов
             result = Regex.Replace(result, @"-+", "-");
-            
+
             // Удаление дефисов в начале и конце
             result = result.Trim('-');
 
             return result;
-        }
-    }
 
-    public class GenerateSlugRequest
-    {
-        public string Text { get; set; } = string.Empty;
+            [HttpPost("clear-cache")]
+            async Task<IActionResult> ClearCache()
+            {
+                try
+                {
+                    await _productGroupService.ClearCacheAsync();
+                    return Ok(new { success = true, message = "Кэш успешно очищен" });
+                }
+                catch (Exception ex)
+                {
+                    return BadRequest(new { success = false, message = "Ошибка при очистке кэша: " + ex.Message });
+                }
+            }
+        }
+
+        public class GenerateSlugRequest
+        {
+            public string Text { get; set; } = string.Empty;
+        }
     }
 }

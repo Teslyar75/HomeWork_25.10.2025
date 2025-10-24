@@ -34,17 +34,7 @@
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-controller="Shop" asp-action="Index">Крамниця</a>
                         </li>
-                        @if (Context.User.Identity?.IsAuthenticated ?? false)
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link text-dark position-relative" asp-area="" asp-controller="Cart" asp-action="Index">
-                                    <i class="bi bi-cart3"></i> Корзина
-                                    <span id="cart-counter" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none;">
-                                        0
-                                    </span>
-                                </a>
-                            </li>
-                        }
+                       
                     </ul>
                     @if (Context.User.Identity?.IsAuthenticated ?? false)
                     {
@@ -64,17 +54,31 @@
 
                         var birthdayClaim = Context.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.DateOfBirth);
 
-                        <div>
+                        <div class="d-flex align-items-center gap-2 flex-row">
+                            <!-- Панель администратора -->
                             <a asp-controller="Shop"
                                asp-action="Admin"
                                class="btn btn-outline-secondary text-decoration-none text-body"
                                title="Панель управління"><i class="bi bi-speedometer2"></i></a>
 
+                            <!-- Счетчик корзины -->
+                            <a asp-controller="Cart" asp-action="Index" class="btn btn-outline-secondary position-relative" title="Корзина">
+                                <i class="bi bi-cart3"></i>
+                                <span id="cart-counter" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success" style="display: none; font-size: 0.7em;">
+                                    0
+                                </span>
+                            </a>
+
+                            <!-- Кнопка профиля -->
                             <a asp-controller="User"
                                asp-action="Profile"
                                asp-route-id="@login"
-                               class="rounded-circle bg-info p-1 mx-2" title="@name">@(name[0])</a>
-                            <a class="btn btn-outline-secondary" href="?logout">
+                               class="btn btn-primary rounded-circle d-flex align-items-center justify-content-center" 
+                               style="width: 40px; height: 40px; background-color: #0dcaf0; border-color: #0dcaf0;" 
+                               title="@name">@(name[0])</a>
+
+                            <!-- Кнопка выхода -->
+                            <a class="btn btn-outline-secondary" href="?logout" title="Выход">
                                 <i class="bi bi-box-arrow-right"></i>
                             </a>
                         
@@ -206,8 +210,10 @@
                     if (data.Status === 'Ok') {
                         const cartCounter = document.getElementById('cart-counter');
                         if (cartCounter) {
-                            cartCounter.textContent = data.Data.Count;
-                            cartCounter.style.display = data.Data.Count > 0 ? 'inline' : 'none';
+                            // Поддерживаем как PascalCase, так и camelCase
+                            const count = data.Data?.Count || data.Data?.count || data.data?.Count || data.data?.count || 0;
+                            cartCounter.textContent = count;
+                            cartCounter.style.display = count > 0 ? 'inline' : 'none';
                         }
                     }
                 })

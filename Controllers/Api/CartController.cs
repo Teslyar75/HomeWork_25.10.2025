@@ -1,5 +1,6 @@
-using ASP_421.Data;
 using ASP_421.Models.Shop.Api;
+using ASP_421.Services.Interfaces;
+using ASP_421.Filters;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
@@ -7,32 +8,29 @@ namespace ASP_421.Controllers.Api
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class CartController(DataAccessor dataAccessor) : ControllerBase
+    public class CartController(ICartService cartService, IOrderService orderService) : ControllerBase
     {
-        private readonly DataAccessor _dataAccessor = dataAccessor;
+        private readonly ICartService _cartService = cartService;
+        private readonly IOrderService _orderService = orderService;
 
         private Guid? GetCurrentUserId()
         {
-            // Сначала пробуем найти claim с типом "Id" (как в UserController)
             var userIdClaim = User.FindFirst("Id")?.Value;
             if (Guid.TryParse(userIdClaim, out var userId))
             {
                 return userId;
             }
-            
-            // Если не найден, пробуем ClaimTypes.NameIdentifier
-            userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            return Guid.TryParse(userIdClaim, out userId) ? userId : null;
+            return null;
         }
 
         [HttpGet]
-        public IActionResult GetCart()
+        public async Task<IActionResult> GetCart()
         {
             var userId = GetCurrentUserId();
             
-            // Логируем информацию о пользователе для диагностики
-            Console.WriteLine($"Cart API GET - User claims: {string.Join(", ", User.Claims.Select(c => $"{c.Type}={c.Value}"))}");
-            Console.WriteLine($"Cart API GET - Extracted userId: {userId}");
+            // Добавляем логирование для отладки
+            Console.WriteLine($"GetCart - User claims: {string.Join(", ", User.Claims.Select(c => $"{c.Type}={c.Value}"))}");
+            Console.WriteLine($"GetCart - Extracted userId: {userId}");
             
             if (userId == null)
             {
@@ -45,21 +43,21 @@ namespace ASP_421.Controllers.Api
 
             try
             {
-                var cartItems = _dataAccessor.GetUserCartItems(userId.Value);
+                var cartItems = await _cartService.GetUserCartItemsAsync(userId.Value);
                 var cartSummary = new CartSummaryApiModel
                 {
-                    ItemsCount = _dataAccessor.GetCartItemsCount(userId.Value),
-                    TotalAmount = _dataAccessor.GetCartTotal(userId.Value),
+                    ItemsCount = await _cartService.GetCartItemsCountAsync(userId.Value),
+                    TotalAmount = await _cartService.GetCartTotalAsync(userId.Value),
                     Items = cartItems.Select(item => new CartItemApiModel
                     {
                         Id = item.Id,
                         ProductId = item.ProductId,
-                        ProductName = item.Product.Name,
-                        ProductDescription = item.Product.Description,
-                        ProductImageUrl = item.Product.ImageUrl,
-                        ProductPrice = item.Product.Price,
+                        ProductName = item.Product?.Name ?? "Unknown",
+                        ProductDescription = item.Product?.Description ?? "",
+                        ProductImageUrl = item.Product?.ImageUrl ?? "",
+                        ProductPrice = item.Product?.Price ?? 0,
                         Quantity = item.Quantity,
-                        TotalPrice = item.Quantity * item.Product.Price,
+                        TotalPrice = item.Quantity * (item.Product?.Price ?? 0),
                         AddedAt = item.AddedAt
                     }).ToList()
                 };
@@ -81,13 +79,14 @@ namespace ASP_421.Controllers.Api
         }
 
         [HttpPost("add")]
-        public IActionResult AddToCart([FromBody] AddToCartRequest request)
+        public async Task<IActionResult> AddToCart([FromBody] AddToCartRequest request)
         {
             var userId = GetCurrentUserId();
             
-            // Логируем информацию о пользователе для диагностики
-            Console.WriteLine($"Cart API - User claims: {string.Join(", ", User.Claims.Select(c => $"{c.Type}={c.Value}"))}");
-            Console.WriteLine($"Cart API - Extracted userId: {userId}");
+            // Добавляем логирование для отладки
+            Console.WriteLine($"AddToCart - User claims: {string.Join(", ", User.Claims.Select(c => $"{c.Type}={c.Value}"))}");
+            Console.WriteLine($"AddToCart - Extracted userId: {userId}");
+            Console.WriteLine($"AddToCart - ProductId: {request.ProductId}, Quantity: {request.Quantity}");
             
             if (userId == null)
             {
@@ -98,41 +97,30 @@ namespace ASP_421.Controllers.Api
                 });
             }
 
-            if (request == null)
-            {
-                return Ok(new CartApiResponse
-                {
-                    Status = "Error",
-                    ErrorMessage = "Некоректні дані запиту"
-                });
-            }
-
-            if (request.ProductId == Guid.Empty)
-            {
-                return Ok(new CartApiResponse
-                {
-                    Status = "Error",
-                    ErrorMessage = "Некоректний ID товару"
-                });
-            }
-
-            if (request.Quantity <= 0)
-            {
-                return Ok(new CartApiResponse
-                {
-                    Status = "Error",
-                    ErrorMessage = "Кількість товару повинна бути більше нуля"
-                });
-            }
-
             try
             {
-                _dataAccessor.AddToCart(userId.Value, request.ProductId, request.Quantity);
+                await _cartService.AddToCartAsync(userId.Value, request.ProductId, request.Quantity);
                 
                 return Ok(new CartApiResponse
                 {
                     Status = "Ok",
-                    Data = new { Message = "Товар додано до корзини" }
+                    Message = "Товар успішно додано до корзини"
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return Ok(new CartApiResponse
+                {
+                    Status = "Error",
+                    ErrorMessage = ex.Message
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Ok(new CartApiResponse
+                {
+                    Status = "Error",
+                    ErrorMessage = ex.Message
                 });
             }
             catch (Exception ex)
@@ -140,30 +128,15 @@ namespace ASP_421.Controllers.Api
                 return Ok(new CartApiResponse
                 {
                     Status = "Error",
-                    ErrorMessage = $"Помилка додавання до корзини: {ex.Message}"
+                    ErrorMessage = "Сталась помилка, повторіть дію пізніше"
                 });
             }
         }
 
-        [HttpPut("update")]
-        public IActionResult UpdateCartItem([FromBody] UpdateCartItemRequest request)
+        [HttpPut("modify")]
+        public async Task<IActionResult> ModifyCartItem([FromBody] ModifyCartItemRequest request)
         {
             var userId = GetCurrentUserId();
-            
-            // Логируем информацию о запросе для диагностики
-            Console.WriteLine($"Cart API UPDATE - User claims: {string.Join(", ", User.Claims.Select(c => $"{c.Type}={c.Value}"))}");
-            Console.WriteLine($"Cart API UPDATE - Extracted userId: {userId}");
-            Console.WriteLine($"Cart API UPDATE - Request is null: {request == null}");
-            
-            if (request != null)
-            {
-                Console.WriteLine($"Cart API UPDATE - Request: ProductId={request.ProductId}, Quantity={request.Quantity}");
-                Console.WriteLine($"Cart API UPDATE - ProductId is empty: {request.ProductId == Guid.Empty}");
-            }
-            else
-            {
-                Console.WriteLine("Cart API UPDATE - Request is NULL!");
-            }
             
             if (userId == null)
             {
@@ -174,63 +147,46 @@ namespace ASP_421.Controllers.Api
                 });
             }
 
-            if (request == null)
-            {
-                return Ok(new CartApiResponse
-                {
-                    Status = "Error",
-                    ErrorMessage = "Некоректні дані запиту - request is null"
-                });
-            }
-
-            if (request.ProductId == Guid.Empty)
-            {
-                return Ok(new CartApiResponse
-                {
-                    Status = "Error",
-                    ErrorMessage = "Некоректний ID товару"
-                });
-            }
-
-            if (request.Quantity <= 0)
-            {
-                return Ok(new CartApiResponse
-                {
-                    Status = "Error",
-                    ErrorMessage = "Кількість товару повинна бути більше нуля"
-                });
-            }
-
             try
             {
-                _dataAccessor.UpdateCartItemQuantity(userId.Value, request.ProductId, request.Quantity);
+                await _cartService.ModifyCartItemAsync(userId.Value, request.ProductId, request.Increment);
                 
                 return Ok(new CartApiResponse
                 {
                     Status = "Ok",
-                    Data = new { Message = "Кількість товару оновлено" }
+                    Message = "Кількість товару успішно оновлено"
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return Ok(new CartApiResponse
+                {
+                    Status = "Error",
+                    ErrorMessage = ex.Message
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Ok(new CartApiResponse
+                {
+                    Status = "Error",
+                    ErrorMessage = ex.Message
                 });
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Cart API UPDATE - Exception: {ex.Message}");
                 return Ok(new CartApiResponse
                 {
                     Status = "Error",
-                    ErrorMessage = $"Помилка оновлення корзини: {ex.Message}"
+                    ErrorMessage = "Сталась помилка, повторіть дію пізніше"
                 });
             }
         }
 
-        [HttpDelete("{productId}")]
-        public IActionResult RemoveFromCart(Guid productId)
+        [HttpPost("checkout")]
+        public async Task<IActionResult> CheckoutCart()
         {
             var userId = GetCurrentUserId();
-            
-            // Логируем информацию о запросе для диагностики
-            Console.WriteLine($"Cart API DELETE - User claims: {string.Join(", ", User.Claims.Select(c => $"{c.Type}={c.Value}"))}");
-            Console.WriteLine($"Cart API DELETE - Extracted userId: {userId}");
-            Console.WriteLine($"Cart API DELETE - ProductId: {productId}");
             
             if (userId == null)
             {
@@ -243,46 +199,21 @@ namespace ASP_421.Controllers.Api
 
             try
             {
-                _dataAccessor.RemoveFromCart(userId.Value, productId);
+                var order = await _orderService.CreateOrderFromCartAsync(userId.Value);
                 
                 return Ok(new CartApiResponse
                 {
                     Status = "Ok",
-                    Data = new { Message = "Товар видалено з корзини" }
+                    Message = "Замовлення успішно оформлено",
+                    Data = new { OrderId = order.Id }
                 });
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Cart API DELETE - Exception: {ex.Message}");
-                return Ok(new CartApiResponse
-                {
-                    Status = "Error",
-                    ErrorMessage = $"Помилка видалення з корзини: {ex.Message}"
-                });
-            }
-        }
-
-        [HttpDelete("clear")]
-        public IActionResult ClearCart()
-        {
-            var userId = GetCurrentUserId();
-            if (userId == null)
+            catch (InvalidOperationException ex)
             {
                 return Ok(new CartApiResponse
                 {
                     Status = "Error",
-                    ErrorMessage = "Користувач не авторизований"
-                });
-            }
-
-            try
-            {
-                _dataAccessor.ClearCart(userId.Value);
-                
-                return Ok(new CartApiResponse
-                {
-                    Status = "Ok",
-                    Data = new { Message = "Корзина очищена" }
+                    ErrorMessage = ex.Message
                 });
             }
             catch (Exception ex)
@@ -290,15 +221,16 @@ namespace ASP_421.Controllers.Api
                 return Ok(new CartApiResponse
                 {
                     Status = "Error",
-                    ErrorMessage = $"Помилка очищення корзини: {ex.Message}"
+                    ErrorMessage = "Сталась помилка, повторіть дію пізніше"
                 });
             }
         }
 
         [HttpGet("count")]
-        public IActionResult GetCartItemsCount()
+        public async Task<IActionResult> GetCartItemsCount()
         {
             var userId = GetCurrentUserId();
+            
             if (userId == null)
             {
                 return Ok(new CartApiResponse
@@ -310,7 +242,7 @@ namespace ASP_421.Controllers.Api
 
             try
             {
-                var count = _dataAccessor.GetCartItemsCount(userId.Value);
+                var count = await _cartService.GetCartItemsCountAsync(userId.Value);
                 
                 return Ok(new CartApiResponse
                 {
@@ -323,7 +255,51 @@ namespace ASP_421.Controllers.Api
                 return Ok(new CartApiResponse
                 {
                     Status = "Error",
-                    ErrorMessage = $"Помилка отримання кількості товарів: {ex.Message}"
+                    ErrorMessage = "Сталась помилка, повторіть дію пізніше"
+                });
+            }
+        }
+
+        [HttpGet("last-order")]
+        public async Task<IActionResult> GetLastOrder()
+        {
+            var userId = GetCurrentUserId();
+            
+            if (userId == null)
+            {
+                return Ok(new CartApiResponse
+                {
+                    Status = "Error",
+                    ErrorMessage = "Користувач не авторизований"
+                });
+            }
+
+            try
+            {
+                var orders = await _orderService.GetUserOrdersAsync(userId.Value);
+                var lastOrder = orders.FirstOrDefault();
+                
+                if (lastOrder == null)
+                {
+                    return Ok(new CartApiResponse
+                    {
+                        Status = "Error",
+                        ErrorMessage = "Немає замовлень для повторення"
+                    });
+                }
+
+                return Ok(new CartApiResponse
+                {
+                    Status = "Ok",
+                    Data = new { OrderId = lastOrder.Id }
+                });
+            }
+            catch (Exception ex)
+            {
+                return Ok(new CartApiResponse
+                {
+                    Status = "Error",
+                    ErrorMessage = "Сталась помилка, повторіть дію пізніше"
                 });
             }
         }

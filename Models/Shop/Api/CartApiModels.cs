@@ -4,6 +4,7 @@ namespace ASP_421.Models.Shop.Api
     {
         public string Status { get; set; } = "Ok";
         public string? ErrorMessage { get; set; }
+        public string? Message { get; set; }
         public object? Data { get; set; }
     }
 
@@ -37,5 +38,16 @@ namespace ASP_421.Models.Shop.Api
     {
         public Guid ProductId { get; set; }
         public int Quantity { get; set; }
+    }
+
+    public class ModifyCartItemRequest
+    {
+        public Guid ProductId { get; set; }
+        public int Increment { get; set; }
+    }
+
+    public class RepeatCartRequest
+    {
+        public Guid SourceUserId { get; set; }
     }
 }

@@ -1,24 +1,23 @@
-﻿using ASP_421.Data;
-using ASP_421.Models.Shop;
+﻿using ASP_421.Models.Shop;
+using ASP_421.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 using ASP_421.Services;
 using ASP_421.Services.Storage;
+using System.Security.Claims;
 
 namespace ASP_421.Controllers
 {
-    public class ShopController(DataAccessor dataAccessor, IViewedProductsService viewedProductsService, IStorageService storageService) : Controller
+    public class ShopController(IProductGroupService productGroupService, IProductService productService, IViewedProductsService viewedProductsService, IStorageService storageService) : BaseController
     {
-        private readonly DataAccessor _dataAccessor = dataAccessor;
+        private readonly IProductGroupService _productGroupService = productGroupService;
+        private readonly IProductService _productService = productService;
         private readonly IViewedProductsService _viewedProductsService = viewedProductsService;
         private readonly IStorageService _storageService = storageService;
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
             // Получаем родительские группы с загруженными товарами
-            var groups = _dataAccessor.ProductGroups()
-                .Where(g => g.DeletedAt == null && g.ParentId == null)
-                .ToList(); // Materialize to load Products
+            var groups = await _productGroupService.GetParentGroupsAsync();
             
             // Получаем просмотренные товары из всех групп
             var sessionId = HttpContext.Session.Id;
@@ -33,11 +32,10 @@ namespace ASP_421.Controllers
             return View(model);
         }
 
-        public IActionResult Group(String id)
+        public async Task<IActionResult> Group(String id)
         {
             // Находим группу по slug с загруженными товарами
-            var group = _dataAccessor.ProductGroups()
-                .FirstOrDefault(g => g.DeletedAt == null && g.Slug == id);
+            var group = await _productGroupService.GetGroupBySlugAsync(id);
 
             if (group == null)
             {
@@ -45,9 +43,7 @@ namespace ASP_421.Controllers
             }
 
             // Получаем товары этой группы
-            var products = group.Products
-                .Where(p => p.DeletedAt == null)
-                .ToList();
+            var products = await _productService.GetProductsByGroupAsync(group.Id);
 
             ViewData["Group"] = group;
             ViewData["Products"] = products;
@@ -56,12 +52,10 @@ namespace ASP_421.Controllers
             return View();
         }
 
-        public IActionResult Product(String slug)
+        public async Task<IActionResult> Product(String slug)
         {
             // Находим товар по slug
-            var product = _dataAccessor.ProductGroups()
-                .SelectMany(g => g.Products.Where(p => p.DeletedAt == null))
-                .FirstOrDefault(p => p.Slug == slug);
+            var product = await _productService.GetProductBySlugAsync(slug);
 
             if (product == null)
             {
@@ -73,22 +67,7 @@ namespace ASP_421.Controllers
             _viewedProductsService.AddViewedProduct(sessionId, product.Id);
 
             // Получаем похожие товары: 3 из той же группы + 3 из других групп
-            var sameGroupProducts = product.Group.Products
-                .Where(p => p.DeletedAt == null && p.Id != product.Id)
-                .OrderBy(x => Guid.NewGuid()) // Случайный порядок
-                .Take(3)
-                .ToList();
-
-            // Получаем товары из других групп (случайно)
-            var otherGroupsProducts = _dataAccessor.ProductGroups()
-                .Where(g => g.DeletedAt == null && g.Id != product.GroupId)
-                .SelectMany(g => g.Products.Where(p => p.DeletedAt == null))
-                .OrderBy(x => Guid.NewGuid()) // Случайный порядок
-                .Take(3)
-                .ToList();
-
-            // Объединяем: 3 из той же группы + 3 из других групп = 6 товаров
-            var relatedProducts = sameGroupProducts.Concat(otherGroupsProducts).ToList();
+            var relatedProducts = await _productService.GetRelatedProductsAsync(product.Id, 6);
 
             // Получаем просмотренные товары из всех групп
             var viewedProducts = _viewedProductsService.GetViewedProducts(sessionId, 8);
@@ -111,8 +90,8 @@ namespace ASP_421.Controllers
                 {
                     ShopAdminViewModel model = new()
                     {
-                        ProductGroups = _dataAccessor.ProductGroups(),
-                        Products = _dataAccessor.GetAllProducts()
+                        ProductGroups = _productGroupService.GetAllGroupsAsync().Result,
+                        Products = _productService.GetAllProductsAsync().Result
                     };
                     return View(model);
                 }
@@ -129,9 +108,12 @@ namespace ASP_421.Controllers
 
                 if (role == "Admin")
                 {
+                    var groups = _productGroupService.GetAllGroupsAsync().Result;
+                    var products = _productService.GetAllProductsAsync().Result;
+                    
                     var model = new AdminEditViewModel
                     {
-                        Groups = _dataAccessor.GetAllGroups()
+                        Groups = groups
                             .Select(g => new EditGroupViewModel
                             {
                                 Id = g.Id,
@@ -143,10 +125,10 @@ namespace ASP_421.Controllers
                                 IsDeleted = g.DeletedAt != null,
                                 ParentName = g.Parent?.Name,
                                 ProductsCount = g.Products.Count(p => p.DeletedAt == null),
-                                SubGroupsCount = _dataAccessor.GetSubGroupsCount(g.Id)
+                                SubGroupsCount = groups.Count(sg => sg.ParentId == g.Id)
                             })
                             .ToList(),
-                        Products = _dataAccessor.GetAllProducts()
+                        Products = products
                             .Select(p => new EditProductViewModel
                             {
                                 Id = p.Id,
@@ -161,7 +143,7 @@ namespace ASP_421.Controllers
                                 GroupName = p.Group?.Name
                             })
                             .ToList(),
-                        AllGroups = _dataAccessor.GetAllGroups()
+                        AllGroups = groups
                             .Select(g => new EditGroupViewModel
                             {
                                 Id = g.Id,
@@ -173,7 +155,7 @@ namespace ASP_421.Controllers
                                 IsDeleted = g.DeletedAt != null,
                                 ParentName = g.Parent?.Name,
                                 ProductsCount = g.Products.Count(p => p.DeletedAt == null),
-                                SubGroupsCount = _dataAccessor.GetSubGroupsCount(g.Id)
+                                SubGroupsCount = groups.Count(sg => sg.ParentId == g.Id)
                             })
                             .ToList()
                     };
@@ -184,7 +166,7 @@ namespace ASP_421.Controllers
         }
 
         [HttpPost]
-        public IActionResult UpdateProduct(Guid id, [FromForm] EditProductViewModel model, IFormFile? productImage)
+        public async Task<IActionResult> UpdateProduct(Guid id, [FromForm] EditProductViewModel model, IFormFile? productImage)
         {
             Console.WriteLine($"POST request received for product ID: {id}");
             Console.WriteLine($"Request content type: {HttpContext.Request.ContentType}");
@@ -230,7 +212,7 @@ namespace ASP_421.Controllers
                     return Json(new { success = false, message = "Помилка валідації", errors = errors.ToList() });
                 }
 
-                var product = _dataAccessor.GetProductById(id);
+                var product = _productService.GetProductByIdAsync(id).Result;
                 if (product == null)
                 {
                     Console.WriteLine($"Product with ID {id} not found");
@@ -260,7 +242,7 @@ namespace ASP_421.Controllers
                     product.ImageUrl = model.ImageUrl; // Сохраняем старое изображение, если новое не загружено
                 }
 
-                _dataAccessor.UpdateProduct(product);
+                await _productService.UpdateProductAsync(product);
 
                 Console.WriteLine($"Product {product.Name} successfully updated");
                 return Json(new { success = true, message = "Товар успішно оновлено" });

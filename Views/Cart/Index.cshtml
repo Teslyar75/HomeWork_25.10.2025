@@ -57,10 +57,12 @@
                                                 <div class="d-flex align-items-center">
                                                     @if (!string.IsNullOrEmpty(item.Product.ImageUrl))
                                                     {
-                                                        <img src="/Storage/Item/@item.Product.ImageUrl" 
-                                                             class="me-3" 
-                                                             style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;" 
-                                                             alt="@item.Product.Name">
+                                                        <a asp-controller="Shop" asp-action="Product" asp-route-slug="@item.Product.Slug" class="me-3">
+                                                            <img src="/Storage/Item/@item.Product.ImageUrl" 
+                                                                 style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; cursor: pointer;" 
+                                                                 alt="@item.Product.Name"
+                                                                 title="Натисніть для перегляду товару">
+                                                        </a>
                                                     }
                                                     else
                                                     {
@@ -106,9 +108,9 @@
                                             </td>
                                             <td class="text-center">
                                                 <button class="btn btn-outline-danger btn-sm" 
-                                                        onclick="removeFromCart('@item.ProductId.ToString()')"
+                                                        onclick="confirmRemoveFromCart('@item.ProductId.ToString()')"
                                                         title="Видалити з корзини">
-                                                    <i class="bi bi-trash"></i>
+                                                    <i class="bi bi-x-lg"></i>
                                                 </button>
                                             </td>
                                         </tr>
@@ -135,16 +137,13 @@
                             <span class="fw-bold text-primary fs-5">@totalAmount.ToString("C")</span>
                         </div>
                         <hr>
-                        <div class="d-grid gap-2">
+                        <div class="d-flex gap-2">
                             <button class="btn btn-success btn-lg" onclick="proceedToCheckout()">
                                 <i class="bi bi-credit-card"></i> Оформити замовлення
                             </button>
-                            <button class="btn btn-outline-secondary" onclick="clearCart()">
+                            <button class="btn btn-outline-danger" onclick="clearCart()">
                                 <i class="bi bi-trash"></i> Очистити корзину
                             </button>
-                            <a asp-controller="Shop" asp-action="Index" class="btn btn-outline-primary">
-                                <i class="bi bi-arrow-left"></i> Продовжити покупки
-                            </a>
                         </div>
                     </div>
                 </div>
@@ -286,19 +285,83 @@
 function increaseQuantity(productId, button) {
     const input = document.getElementById(`quantity-${productId}`);
     const currentValue = parseInt(input.value) || 1;
-    const newValue = currentValue + 1;
     
-    console.log('Increasing quantity:', productId, 'from', currentValue, 'to', newValue);
-    updateQuantity(productId, newValue);
+    console.log('Increasing quantity:', productId, 'from', currentValue);
+    modifyCartItem(productId, 1);
+}
+
+function modifyCartItem(productId, increment) {
+    console.log('Modifying cart item:', productId, 'increment:', increment);
+    
+    const requestBody = {
+        productId: productId,
+        increment: increment
+    };
+    
+    console.log('Request body:', requestBody);
+
+    fetch('/api/cart/modify', {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody)
+    })
+    .then(response => {
+        console.log('Modify response status:', response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Modify response data:', data);
+        if (data.status === 'Ok') {
+            showCartNotification('Кількість товару оновлено', 'success');
+            
+            // Обновляем значение в поле ввода
+            const input = document.getElementById(`quantity-${productId}`);
+            if (input) {
+                const currentValue = parseInt(input.value) || 1;
+                const newValue = currentValue + increment;
+                input.value = Math.max(1, newValue);
+            }
+            
+            // Перезагружаем страницу для обновления всех данных
+            setTimeout(() => {
+                location.reload();
+            }, 500);
+        } else {
+            // Обработка различных типов ошибок
+            if (data.errorMessage && data.errorMessage.includes('Недостатньо товару на складі')) {
+                showCartNotification(data.errorMessage, 'warning');
+            } else if (data.errorMessage && data.errorMessage.includes('від\'ємною')) {
+                showCartNotification('Кількість товару не може бути від\'ємною', 'warning');
+            } else {
+                showCartNotification(data.errorMessage || 'Сталась помилка, повторіть дію пізніше', 'danger');
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error modifying cart item:', error);
+        showCartNotification('Сталась помилка, повторіть дію пізніше', 'danger');
+    });
 }
 
 function decreaseQuantity(productId, button) {
     const input = document.getElementById(`quantity-${productId}`);
     const currentValue = parseInt(input.value) || 1;
-    const newValue = Math.max(1, currentValue - 1);
     
-    console.log('Decreasing quantity:', productId, 'from', currentValue, 'to', newValue);
-    updateQuantity(productId, newValue);
+    console.log('Decreasing quantity:', productId, 'from', currentValue);
+    
+    // Если текущее количество равно 1, показываем подтверждение удаления
+    if (currentValue === 1) {
+        if (!confirm('Ви впевнені, що хочете видалити цей товар з корзини?')) {
+            return;
+        }
+    }
+    
+    modifyCartItem(productId, -1);
 }
 
 function updateQuantity(productId, newQuantity) {
@@ -360,6 +423,20 @@ function updateQuantity(productId, newQuantity) {
     });
 }
 
+function confirmRemoveFromCart(productId) {
+    console.log('Confirming removal of product from cart:', productId);
+    
+    if (!confirm('Ви впевнені, що хочете видалити цей товар з корзини?')) {
+        return;
+    }
+    
+    // Используем новый API для удаления через ModifyCartItem с increment = -currentQuantity
+    const input = document.getElementById(`quantity-${productId}`);
+    const currentQuantity = parseInt(input.value) || 1;
+    
+    modifyCartItem(productId, -currentQuantity);
+}
+
 function removeFromCart(productId) {
     console.log('Removing product from cart:', productId);
     
@@ -415,8 +492,63 @@ function clearCart() {
 }
 
 function proceedToCheckout() {
-    showCartNotification('Функція оформлення замовлення буде реалізована пізніше', 'info');
+    const isAuthenticated = @(Context.User.Identity?.IsAuthenticated ?? false ? "true" : "false");
+    
+    if (!isAuthenticated) {
+        showCartNotification('Для оформлення замовлення потрібно увійти в систему', 'warning');
+        return;
+    }
+    
+    if (!confirm('Оформити замовлення?')) {
+        return;
+    }
+    
+    const button = event.target;
+    const originalText = button.innerHTML;
+    
+    button.innerHTML = 'Оформляємо...';
+    button.disabled = true;
+    
+    fetch('/api/cart/checkout', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Checkout response:', data);
+        if (data.status === 'Ok') {
+            showCartNotification(data.message || 'Замовлення успішно оформлено!', 'success');
+            updateCartCounter();
+            setTimeout(() => {
+                // Получаем логин пользователя из claims
+                const userLogin = '@Context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value';
+                if (userLogin) {
+                    window.location.href = '/User/Profile?id=' + encodeURIComponent(userLogin);
+                } else {
+                    window.location.href = '/User/Profile';
+                }
+            }, 2000);
+        } else {
+            showCartNotification(data.errorMessage || 'Помилка оформлення замовлення', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error during checkout:', error);
+        showCartNotification('Сталась помилка, повторіть дію пізніше', 'danger');
+    })
+    .finally(() => {
+        button.innerHTML = originalText;
+        button.disabled = false;
+    });
 }
+
 
 // Функция для добавления товара в корзину (для рекомендуемых товаров)
 function addToCart(productId) {
@@ -492,8 +624,9 @@ function updateCartCounter() {
             if (data.status === 'Ok') {
                 const cartCounter = document.getElementById('cart-counter');
                 if (cartCounter) {
-                    cartCounter.textContent = data.data.count;
-                    cartCounter.style.display = data.data.count > 0 ? 'inline' : 'none';
+                    const count = data.data.Count || data.data.count || 0;
+                    cartCounter.textContent = count;
+                    cartCounter.style.display = count > 0 ? 'inline' : 'none';
                 }
             } else {
                 console.warn('Cart count API returned error:', data.errorMessage);

@@ -1,0 +1,215 @@
+@{
+    ViewData["Title"] = "История заказов";
+    var orders = ViewData["Orders"] as IEnumerable<ASP_421.Data.Entities.Order> ?? Enumerable.Empty<ASP_421.Data.Entities.Order>();
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Головна</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">История заказов</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">
+                <i class="bi bi-clock-history"></i> История заказов
+                @if (orders.Any())
+                {
+                    <span class="badge bg-primary ms-2">@orders.Count() заказов</span>
+                }
+            </h1>
+        </div>
+    </div>
+
+    @if (orders.Any())
+    {
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Номер заказа</th>
+                                        <th>Дата</th>
+                                        <th>Товаров</th>
+                                        <th>Сумма</th>
+                                        <th>Статус</th>
+                                        <th class="text-center">Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var order in orders)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <a asp-controller="Orders" asp-action="Details" asp-route-id="@order.Id" class="text-decoration-none">
+                                                    #@order.Id.ToString().Substring(0, 8)
+                                                </a>
+                                            </td>
+                                            <td>
+                                                <div>
+                                                    <strong>@order.OrderDate.ToString("dd.MM.yyyy")</strong>
+                                                    <br>
+                                                    <small class="text-muted">@order.OrderDate.ToString("HH:mm")</small>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-info">@order.ItemsCount шт.</span>
+                                            </td>
+                                            <td>
+                                                <span class="fw-bold text-primary">@order.TotalAmount.ToString("C")</span>
+                                            </td>
+                                            <td>
+                                                @if (order.Status == "Completed")
+                                                {
+                                                    <span class="badge bg-success">
+                                                        <i class="bi bi-check-circle"></i> Завершен
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-warning">
+                                                        <i class="bi bi-clock"></i> @order.Status
+                                                    </span>
+                                                }
+                                            </td>
+                                            <td class="text-center">
+                                                <div class="btn-group" role="group">
+                                                    <a asp-controller="Orders" asp-action="Details" asp-route-id="@order.Id" 
+                                                       class="btn btn-outline-primary btn-sm" title="Детали заказа">
+                                                        <i class="bi bi-eye"></i>
+                                                    </a>
+                                                    <button class="btn btn-outline-success btn-sm" 
+                                                            onclick="repeatOrder('@order.Id')" 
+                                                            title="Повторить заказ">
+                                                        <i class="bi bi-arrow-clockwise"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <i class="bi bi-inbox fs-1 text-muted mb-3"></i>
+                        <h4>История заказов пуста</h4>
+                        <p class="text-muted mb-4">У вас пока нет завершенных заказов</p>
+                        <a asp-controller="Shop" asp-action="Index" class="btn btn-primary">
+                            <i class="bi bi-shop"></i> Перейти к покупкам
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<script>
+function repeatOrder(orderId) {
+    console.log('Repeating order:', orderId);
+    
+    if (!confirm('Ви впевнені, що хочете повторити цей заказ? Товари будуть додано до вашої корзини.')) {
+        return;
+    }
+    
+    const button = event.target.closest('button');
+    const originalText = button.innerHTML;
+    
+    button.innerHTML = '<i class="bi bi-hourglass-split"></i>';
+    button.disabled = true;
+    
+    fetch('/Orders/RepeatOrder', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(orderId)
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Repeat order response:', data);
+        if (data.success) {
+            showOrderNotification(data.message, 'success');
+            
+            // Обновляем счетчик корзины
+            updateCartCounter();
+            
+            // Перенаправляем в корзину
+            setTimeout(() => {
+                window.location.href = '/Cart';
+            }, 1000);
+        } else {
+            showOrderNotification(data.message || 'Помилка повторення замовлення', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error repeating order:', error);
+        showOrderNotification('Сталась помилка, повторіть дію пізніше', 'danger');
+    })
+    .finally(() => {
+        button.innerHTML = originalText;
+        button.disabled = false;
+    });
+}
+
+function updateCartCounter() {
+    fetch('/api/cart/count')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'Ok') {
+                const cartCounter = document.getElementById('cart-counter');
+                if (cartCounter) {
+                    cartCounter.textContent = data.data.count;
+                    cartCounter.style.display = data.data.count > 0 ? 'inline' : 'none';
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка обновления счетчика корзины:', error);
+        });
+}
+
+function showOrderNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    
+    notification.innerHTML = `
+        <i class="bi bi-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-triangle' : 'info-circle'}"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 3000);
+}
+</script>

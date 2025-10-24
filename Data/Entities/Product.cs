@@ -16,6 +16,8 @@ namespace ASP_421.Data.Entities
         public decimal Price { get; set; }//ціна
         public int Stock { get; set; }//кількість на складі
         public DateTime? DeletedAt { get; set; }
+        public DateTime? CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
 
         public ProductGroup Group { get; set; } = null!;
 

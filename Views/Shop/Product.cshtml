@@ -98,10 +98,10 @@
                             @if (Context.User.Identity?.IsAuthenticated ?? false)
                             {
                                 <div class="d-grid gap-2 d-md-flex">
-                                    <button class="btn btn-primary btn-lg me-md-2" onclick="addToCart('@product.Id')">
-                                        <i class="bi bi-cart-plus"></i> Додати в кошик
+                                    <button class="btn btn-primary btn-lg me-md-2" id="cart-button" onclick="handleCartAction('@product?.Id')">
+                                        <i class="bi bi-cart-plus"></i> <span id="cart-button-text">Додати в кошик</span>
                                     </button>
-                                    <button class="btn btn-outline-secondary btn-lg" onclick="addToWishlist('@product.Id')">
+                                    <button class="btn btn-outline-secondary btn-lg" onclick="addToWishlist('@product?.Id')">
                                         <i class="bi bi-heart"></i> В обране
                                     </button>
                                 </div>
@@ -232,6 +232,83 @@
 </div>
 
 <script>
+// Проверяем наличие товара в корзине при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+    const isAuthenticated = @(Context.User.Identity?.IsAuthenticated ?? false ? "true" : "false");
+    if (isAuthenticated && '@product?.Id' !== '') {
+        checkProductInCart('@product?.Id');
+    }
+});
+
+function checkProductInCart(productId) {
+    console.log('Checking if product is in cart:', productId);
+    
+    fetch('/api/cart')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Cart data:', data);
+            if (data.status === 'Ok' && data.data && data.data.items) {
+                const cartItems = data.data.items;
+                const productInCart = cartItems.find(item => item.productId === productId);
+                
+                updateCartButton(productInCart);
+            }
+        })
+        .catch(error => {
+            console.error('Error checking cart:', error);
+        });
+}
+
+function updateCartButton(productInCart) {
+    const cartButton = document.getElementById('cart-button');
+    const cartButtonText = document.getElementById('cart-button-text');
+    const cartIcon = cartButton.querySelector('i');
+    
+    if (productInCart) {
+        // Товар есть в корзине
+        cartButtonText.textContent = 'Перейти до кошика';
+        cartIcon.className = 'bi bi-cart-check';
+        cartButton.classList.remove('btn-primary');
+        cartButton.classList.add('btn-success');
+        cartButton.onclick = function() {
+            window.location.href = '/Cart';
+        };
+    } else {
+        // Товара нет в корзине
+        cartButtonText.textContent = 'Додати в кошик';
+        cartIcon.className = 'bi bi-cart-plus';
+        cartButton.classList.remove('btn-success');
+        cartButton.classList.add('btn-primary');
+        cartButton.onclick = function() {
+            addToCart('@product?.Id');
+        };
+    }
+}
+
+function handleCartAction(productId) {
+    const isAuthenticated = @(Context.User.Identity?.IsAuthenticated ?? false ? "true" : "false");
+    
+    if (!isAuthenticated) {
+        showCartNotification('Для додавання товарів до кошика потрібно увійти в систему', 'warning');
+        return;
+    }
+    
+    // Проверяем текущее состояние кнопки
+    const cartButton = document.getElementById('cart-button');
+    if (cartButton.classList.contains('btn-success')) {
+        // Товар уже в корзине, переходим к корзине
+        window.location.href = '/Cart';
+    } else {
+        // Товара нет в корзине, добавляем
+        addToCart(productId);
+    }
+}
+
 function addToCart(productId) {
     // Проверка авторизации ПЕРЕД отправкой запроса
     const isAuthenticated = @(Context.User.Identity?.IsAuthenticated ?? false ? "true" : "false");
@@ -273,14 +350,32 @@ function addToCart(productId) {
             showCartNotification('Товар додано до корзини!', 'success');
             updateCartCounter();
             
-            button.classList.add('btn-success');
+            // Обновляем кнопку после успешного добавления
+            const cartButton = document.getElementById('cart-button');
+            const cartButtonText = document.getElementById('cart-button-text');
+            const cartIcon = cartButton.querySelector('i');
+            
+            cartButtonText.textContent = 'Перейти до кошика';
+            cartIcon.className = 'bi bi-cart-check';
+            cartButton.classList.remove('btn-primary');
+            cartButton.classList.add('btn-success');
+            cartButton.onclick = function() {
+                window.location.href = '/Cart';
+            };
+            
+            // Временно меняем цвет кнопки для визуальной обратной связи
+            cartButton.classList.add('btn-success');
             setTimeout(() => {
-                button.classList.remove('btn-success');
-                button.classList.add('btn-primary');
+                cartButton.classList.remove('btn-primary');
             }, 1000);
         } else {
             console.error('API returned error:', data);
-            showCartNotification(data.errorMessage || 'Помилка додавання до корзини', 'danger');
+            // Обработка различных типов ошибок
+            if (data.errorMessage && data.errorMessage.includes('Недостатньо товару на складі')) {
+                showCartNotification(data.errorMessage, 'warning');
+            } else {
+                showCartNotification(data.errorMessage || 'Помилка додавання до корзини', 'danger');
+            }
         }
     })
     .catch(error => {

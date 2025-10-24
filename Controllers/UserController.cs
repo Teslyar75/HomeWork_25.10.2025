@@ -1,5 +1,6 @@
 ﻿using ASP_421.Data;
 using ASP_421.Models.User;
+using ASP_421.Services.Interfaces;
 using ASP_421.Services.Kdf;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -10,10 +11,12 @@ namespace ASP_421.Controllers
 {
     public class UserController(
         DataContext dataContext, 
-        IKdfService kdfService) : Controller
+        IKdfService kdfService,
+        IUserService userService) : BaseController
     {
         private readonly DataContext _dataContext = dataContext;
         private readonly IKdfService _kdfService = kdfService;
+        private readonly IUserService _userService = userService;
 
         const String RegisterKey = "RegisterFormModel";
 
@@ -52,10 +55,20 @@ namespace ASP_421.Controllers
                 viewModel.CartItemsCount = viewModel.CartItems.Count();
                 viewModel.CartTotalAmount = viewModel.CartItems.Sum(c => c.Quantity * c.Product.Price);
                 
-                // Статистика пользователя (пока что заглушки, так как нет таблицы заказов)
-                viewModel.TotalOrdersCount = 0; // Будет реализовано позже
-                viewModel.TotalSpentAmount = 0m; // Будет реализовано позже
-                viewModel.LastOrderDate = null; // Будет реализовано позже
+                // История заказов
+                var orders = _dataContext.Orders
+                    .Where(o => o.UserId == userId)
+                    .Include(o => o.OrderItems)
+                    .AsNoTracking()
+                    .OrderByDescending(o => o.OrderDate)
+                    .ToList();
+                
+                ViewData["Orders"] = orders;
+                
+                // Статистика пользователя
+                viewModel.TotalOrdersCount = orders.Count;
+                viewModel.TotalSpentAmount = orders.Sum(o => o.TotalAmount);
+                viewModel.LastOrderDate = orders.FirstOrDefault()?.OrderDate;
                 viewModel.LastLoginDate = viewModel.User.RegisteredAt; // Используем дату регистрации
                 
                 // Активность
